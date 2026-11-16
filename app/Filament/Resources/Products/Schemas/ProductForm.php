@@ -338,37 +338,67 @@ class ProductForm
             });
     }
 
+    /**
+     * مشخصات (ضمانت، وضعیت نو/کارکرده، RAM…). **همه‌ی خانه‌ها از اول ساخته می‌شوند** و فقط «دیده شدن» هر کدام به
+     * دسته بستگی دارد. اگر خانه‌ها بعد از انتخاب دسته ساخته شوند، انتخابِ یک لیست در آنها (مثلاً «وضعیت: نو») به سرور
+     * نمی‌رسید و با «ذخیره» می‌گفت «لازم است» با اینکه انتخاب شده بود (اشکالی که صاحب پروژه دید و در مرورگر واقعی
+     * بازسازی شد). خانه‌ی پنهان ذخیره نمی‌شود.
+     */
     private static function specsSection(): Section
     {
         return Section::make(__('admin.products.section_specs'))
             ->description(__('admin.products.specs_help'))
             ->collapsible()
-            ->schema(fn (Get $get): array => self::specFields((int) $get('category_id')));
+            ->schema([
+                Text::make(__('admin.products.specs_pick_category'))
+                    ->visible(fn (Get $get): bool => (int) $get('category_id') <= 0),
+                Text::make(__('admin.products.specs_empty'))
+                    ->visible(fn (Get $get): bool => (int) $get('category_id') > 0 && self::applicableSpecs((int) $get('category_id')) === []),
+                Group::make(self::specFields())->columns(['default' => 1, 'md' => 2]),
+            ]);
     }
 
-    /** @return list<Component> */
-    private static function specFields(int $categoryId): array
+    /**
+     * مشخصه‌های توصیفیِ این دسته (و بالادست‌هایش): شناسه ← لازم است؟ فقط یک بار در هر درخواست حساب می‌شود.
+     *
+     * @return array<int, bool>
+     */
+    private static function applicableSpecs(int $categoryId): array
     {
-        $category = $categoryId > 0 ? Category::query()->find($categoryId) : null;
-        if ($category === null) {
-            return [Text::make(__('admin.products.specs_pick_category'))];
+        if ($categoryId <= 0) {
+            return [];
         }
 
-        $attributes = $category->effectiveAttributes()->where('is_variant', false);
-        if ($attributes->isEmpty()) {
-            return [Text::make(__('admin.products.specs_empty'))];
+        $request = request();
+        $cache = (array) $request->attributes->get('product_form_specs', []);
+        if (! array_key_exists($categoryId, $cache)) {
+            $category = Category::query()->find($categoryId);
+            $cache[$categoryId] = $category === null ? [] : $category->effectiveAttributes()
+                ->where('is_variant', false)
+                ->mapWithKeys(fn (Attribute $a): array => [$a->id => (bool) $a->pivot_required])
+                ->all();
+            $request->attributes->set('product_form_specs', $cache);
         }
+
+        return $cache[$categoryId];
+    }
+
+    /** @return list<Component> یک خانه برای هر مشخصه‌ی توصیفیِ فعال */
+    private static function specFields(): array
+    {
+        $attributes = Attribute::query()->active()->where('is_variant', false)
+            ->with(['options' => fn ($query) => $query->where('is_active', true)->orderBy('position')->orderBy('id')])
+            ->orderBy('position')->orderBy('id')->get();
 
         $fields = [];
         foreach ($attributes as $attribute) {
-            $name = 'specs.'.$attribute->id;
-            $label = $attribute->tr('name').($attribute->unit ? ' ('.$attribute->unit.')' : '');
-            $required = (bool) $attribute->pivot_required;
+            $id = $attribute->id;
+            $name = 'specs.'.$id;
+            $title = $attribute->tr('name').($attribute->unit ? ' ('.$attribute->unit.')' : '');
 
             $field = match ($attribute->type) {
                 'select', 'multiselect' => Select::make($name)
-                    ->options(AttributeOption::query()->where('attribute_id', $attribute->id)->where('is_active', true)
-                        ->orderBy('position')->get()->mapWithKeys(fn (AttributeOption $o) => [$o->id => $o->tr('value')])->all())
+                    ->options($attribute->options->mapWithKeys(fn (AttributeOption $o) => [$o->id => $o->tr('value')])->all())
                     ->multiple($attribute->type === 'multiselect')
                     ->searchable(),
                 'number' => TextInput::make($name)->inputMode('decimal')->extraInputAttributes(['dir' => 'ltr'])->maxLength(20),
@@ -376,10 +406,14 @@ class ProductForm
                 default => TextInput::make($name)->maxLength(255),
             };
 
-            $fields[] = $field->label($label.($required ? ' *' : ''));
+            $fields[] = $field
+                ->label(fn (Get $get): string => $title.((self::applicableSpecs((int) $get('category_id'))[$id] ?? false) ? ' *' : ''))
+                ->visible(fn (Get $get): bool => array_key_exists($id, self::applicableSpecs((int) $get('category_id'))))
+                // مقدار به‌محض انتخاب (یا رد شدن از خانه‌ی متنی) به سرور می‌رسد
+                ->live(onBlur: in_array($attribute->type, ['text', 'number'], true));
         }
 
-        return [Group::make($fields)->columns(['default' => 1, 'md' => 2])];
+        return $fields;
     }
 
     private static function descriptionSection(): Section

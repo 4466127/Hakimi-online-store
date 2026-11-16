@@ -63,6 +63,7 @@
 
 ## Git
 - مخزن git این پروژه جداست. کامیت فقط وقتی صاحب پروژه بخواهد، با پیام فارسی واضح. **کامیت فقط به نام صاحب پروژه (`rezahakimi535`)؛ هیچ خط `Co-Authored-By` و هیچ نشانی از Claude اضافه نشود.**
+- **`resources/sample-images/` هیچ‌وقت به GitHub نمی‌رود** (عکس نمونه‌ی اجناس که صاحب پروژه برای درج در سیستم گذاشته؛ در `.gitignore` است). پیش از هر کامیت با `git status` ببین چیزی از آن پوشه یا فایل‌های شخصی دیگر (مثل لوگوهای اضافه در `resources/brand/`) وارد نشده باشد؛ `git add -A` را بی‌دقت نزن.
 - مخزن GitHub: `https://github.com/4466127/Hakimi-online-store.git` (remote `origin`، شاخه‌ی `main`). صاحب پروژه خواسته که بعد از هر بخش پوش شود. `.env`، `vendor/`، `node_modules/` و `storage/` در git نیست. `public/build/` (CSS و JS ساخته‌شده) در git **هست** تا سرور به Node نیاز نداشته باشد.
 
 ## روند کار

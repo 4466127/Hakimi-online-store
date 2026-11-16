@@ -40,6 +40,20 @@ final class AdminNotify
         $notification->send();
     }
 
+    /**
+     * اعلان سرخ یکسان در همان درخواست دوباره فرستاده نشود (مثلاً هم از خود سرویس و هم از قاعده‌ی عمومی فورم).
+     */
+    private static function alreadySent(string $fingerprint): bool
+    {
+        $request = request();
+        if ($request->attributes->get('admin_notify_last') === $fingerprint) {
+            return true;
+        }
+        $request->attributes->set('admin_notify_last', $fingerprint);
+
+        return false;
+    }
+
     /** «ذخیره نشد» + دلیل‌ها (بیشتر از پنج تا: «و n مورد دیگر»). */
     public static function validationFailed(ValidationException $exception): void
     {
@@ -48,6 +62,10 @@ final class AdminNotify
             ->filter()->unique()->values();
 
         if ($messages->isEmpty()) {
+            return;
+        }
+
+        if (self::alreadySent($messages->implode('|'))) {
             return;
         }
 
