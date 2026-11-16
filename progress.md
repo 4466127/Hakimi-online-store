@@ -5,7 +5,7 @@
 
 ## وضعیت حالا
 - مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓. بخش ۲ج (دسته‌های بیشتر، کمیسیون، حساب و تسویه‌ی فروشندگان، مزایا، راهنمای AWS) ✓. بخش ۲د (کلمه‌های افغانستانی، تحویل فقط کابل، موبایل و اپ وب) ✓. مرحله‌ی ۳-۱ (برندها، مشخصه‌ها، مشخصه‌های هر دسته) ✓. مرحله‌ی ۳-۲ (جنس، نوع‌ها، عکس‌ها، قیمت‌گذاری، فورم پنل) ✓. **مرحله‌ی ۳-۳ (صفحه‌های مشتری: جنس، دسته با فیلتر، جستجو، صفحه‌ی اصلی) ✓. قدم بعدی: ۳-۴ (بنرها، cache، sitemap، robots).**
-- `php artisan test` → ۲۸۰ تست سبز. `vendor\bin\pint` → مرتب.
+- `php artisan test` → ۲۹۰ تست سبز. `vendor\bin\pint` → مرتب.
 - کد در GitHub: `https://github.com/4466127/Hakimi-online-store.git` (شاخه‌ی `main`).
 
 ## تصمیم‌های صاحب پروژه (۲۵ عقرب ۱۴۰۵)
@@ -83,6 +83,13 @@
 - متن‌ها (`lang/fa`): کالا ← جنس/اجناس، مرجوعی ← برگشت جنس؛ جستجو «جستجو در بازارک».
 - موبایل: سربرگ یک‌خطی؛ دایره‌های دسته در صفحه‌ی اصلی؛ `manifest.webmanifest` و آیکون‌های ۱۹۲/۵۱۲.
 - بررسی دامنه با RDAP رسمی Verisign: `bazarak.com` از ۲۰۲۰ ثبت است (تا اپریل ۲۰۲۷)؛ نام‌های آزاد در `docs/aws-hosting.md`.
+
+## اعلان‌های پنل (۲۶ عقرب ۱۴۰۵، خواست صاحب پروژه)
+- `App\Support\AdminNotify`: `done()` سبز ۸ ثانیه، `failed()` سرخ و مانا، `validationFailed()` (تا ۵ دلیل + «و n مورد دیگر»). همه‌ی پنل از همین‌جا می‌گذرد.
+- در `AppServiceProvider::registerAdminNotifications`: مدت پیش‌فرض ۸ ثانیه؛ وسط بالا؛ `BasePage::$reportValidationErrorUsing` برای خطای فورم‌های Filament (اعتبارسنجی زنده‌ی یک خانه در blur اعلان نمی‌دهد: با `debug_backtrace` تشخیص `validateOnly`)؛ `ToggleColumn::configureUsing` برای «ذخیره شد» روی سوییچ جدول‌ها.
+- خطای قاعده‌های سرویس جنس (SKU تکراری…) از مسیر `validate()` نمی‌گذرد؛ `ProductFormData::persist` خودش `AdminNotify::validationFailed` را صدا می‌زند.
+- نکته: `Notification::body()` فقط رشته می‌گیرد (نه HtmlString)؛ `<br>` را Filament پاک‌سازی می‌کند. در تست‌ها اعلان‌ها از `NotificationMailbox` + `Livewire\Notifications` خوانده می‌شود (نه از session خام).
+- در مرورگر واقعی (Edge بی‌سر) دیده شد: اعلان سبز «ذخیره شد» بعد از ذخیره‌ی کرایه و اعلان سرخ با دلیل‌ها وقتی فورم جنس خالی فرستاده شود.
 
 ## AVIF و شماره‌ی تلفن مدیر (۲۶ عقرب ۱۴۰۵)
 - `ImageStore`: `supportsAvif()`، `storeAsAvif()`، `storeResponsive(..., withAvif: true)` (خروجی `avif`)؛ ورودی AVIF؛ `allowedTypes()` از روی محتوای فایل. `product_images.avif_sizes` (migration `2026_11_19_000200`)؛ `ProductImage::avifSrcset()`، `files()` شامل AVIF؛ `<picture>` در کارت جنس و صفحه‌ی جنس. `config('store.images.avif')` خاموش‌کن. تست‌ها اگر GD سرور AVIF نداشته باشد skip می‌شوند.

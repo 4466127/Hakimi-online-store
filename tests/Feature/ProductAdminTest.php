@@ -151,6 +151,11 @@ class ProductAdminTest extends TestCase
         $this->assertNotNull($log);
     }
 
+    public function test_new_product_form_has_no_empty_image_row(): void
+    {
+        Livewire::test(CreateProduct::class)->assertFormSet(['existing_images' => []]);
+    }
+
     public function test_create_form_shows_service_errors_on_the_right_row(): void
     {
         $component = Livewire::test(CreateProduct::class)

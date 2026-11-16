@@ -10,6 +10,13 @@ use App\Services\Cart\CartService;
 use App\Services\CategoryMenu;
 use App\Services\Settings;
 use App\Services\StoreInfo;
+use App\Support\AdminNotify;
+use Filament\Notifications\Livewire\Notifications;
+use Filament\Notifications\Notification;
+use Filament\Pages\BasePage;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\VerticalAlignment;
+use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -21,6 +28,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -56,7 +64,37 @@ class AppServiceProvider extends ServiceProvider
         // صفحه‌بندی فارسی و سبک برای سایت مشتری (پنل مدیریت صفحه‌بندی خودش را دارد)
         Paginator::defaultView('vendor.pagination.bazarak');
 
+        $this->registerAdminNotifications();
         $this->registerAdminLoginGuards();
+    }
+
+    /**
+     * اعلان‌های پنل (تصمیم صاحب پروژه): موفقیت سبز ۸ ثانیه؛ خطا سرخ و با دلیل.
+     * - هر اعلان پیش‌فرض ۸ ثانیه می‌ماند.
+     * - خطای فورم (قاعده‌های Filament) اعلان سرخ با دلیل‌ها می‌دهد؛ پیش از این فقط زیر خانه‌ها نوشته می‌شد
+     *   و اگر آن خانه در بخش بسته یا پایین صفحه بود، مدیر می‌دید «ذخیره زدم و هیچ اتفاقی نیفتاد».
+     * - تغییر سوییچ جدول («فعال») «ذخیره شد» می‌گوید.
+     */
+    private function registerAdminNotifications(): void
+    {
+        Notification::configureUsing(fn (Notification $notification) => $notification->duration(AdminNotify::SUCCESS_MS));
+
+        // وسط بالای صفحه (نه گوشه‌ی دور)، تا مدیر حتماً ببیند
+        Notifications::alignment(Alignment::Center);
+        Notifications::verticalAlignment(VerticalAlignment::Start);
+
+        BasePage::$reportValidationErrorUsing = function (ValidationException $exception): void {
+            // اعتبارسنجی زنده‌ی یک خانه (هنگام رد شدن از آن) اعلان نمی‌خواهد؛ فقط دکمه‌ی «ذخیره»
+            foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 8) as $frame) {
+                if (($frame['function'] ?? '') === 'validateOnly') {
+                    return;
+                }
+            }
+            AdminNotify::validationFailed($exception);
+        };
+
+        ToggleColumn::configureUsing(fn (ToggleColumn $column) => $column
+            ->afterStateUpdated(fn () => AdminNotify::done((string) __('admin.saved'))));
     }
 
     /**

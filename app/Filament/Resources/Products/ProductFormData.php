@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\Catalog\ProductImageService;
 use App\Services\Catalog\ProductService;
+use App\Support\AdminNotify;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -81,6 +82,9 @@ class ProductFormData
             $saved = app(ProductService::class)->save($product, self::serviceData($data), auth()->user());
             app(ProductImageService::class)->sync($saved, self::keptImages($data), $newFiles);
         } catch (ValidationException $e) {
+            // خطای قاعده‌های جنس (SKU تکراری، ترکیب تکراری…) ممکن است داخل بخش بسته‌ی فورم باشد: اعلان سرخ هم بده
+            AdminNotify::validationFailed($e);
+
             throw ValidationException::withMessages(self::prefixed($e->errors(), array_keys((array) ($data['variants'] ?? []))));
         } finally {
             // فایل‌های موقت بارگذاری هر طور شد پاک شود

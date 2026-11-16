@@ -115,6 +115,7 @@ class ProductForm
             ->schema([
                 Repeater::make('existing_images')
                     ->label(__('admin.products.existing_images'))
+                    ->defaultItems(0)
                     ->addable(false)
                     ->reorderableWithButtons()
                     ->collapsible(false)
