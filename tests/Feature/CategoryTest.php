@@ -17,7 +17,7 @@ use LogicException;
 use Tests\TestCase;
 
 /**
- * دسته‌بندی کالاها: درخت سه‌سطحی، منو، صفحه‌ی دسته و پنل.
+ * دسته‌بندی اجناس: درخت سه‌سطحی، منو، صفحه‌ی دسته و پنل.
  */
 class CategoryTest extends TestCase
 {
@@ -125,7 +125,7 @@ class CategoryTest extends TestCase
         $this->get('/category/nothing')->assertNotFound();
     }
 
-    public function test_seeder_creates_the_four_main_categories_and_is_safe_to_repeat(): void
+    public function test_seeder_creates_the_main_categories_and_is_safe_to_repeat(): void
     {
         $this->seed(CategorySeeder::class);
         $count = Category::query()->count();
@@ -134,8 +134,15 @@ class CategoryTest extends TestCase
         $this->assertSame($count, Category::query()->count());
         $this->assertSame(['mobile', 'computers', 'digital', 'shoes', 'clothing'], array_slice(Category::query()->roots()->orderBy('position')->pluck('slug')->all(), 0, 5));
         $this->assertSame('3.00', Category::query()->where('slug', 'mobile-phones')->value('commission_rate'));
-        $this->assertFalse(Category::query()->whereIn('slug', ['cars', 'gold', 'tools'])->exists());
+        $this->assertFalse(Category::query()->whereIn('slug', ['cars', 'gold', 'tools', 'health'])->exists());
         $this->assertSame(2, Category::query()->where('slug', 'chargers')->value('depth'));
+
+        // کلمه‌های افغانستانی و دسته‌های تازه (۲۶ عقرب ۱۴۰۵)
+        $this->assertSame('لباس هزارگی و افغانی', Category::query()->where('slug', 'clothing')->first()->tr('name'));
+        $this->assertSame('بکس زنانه', Category::query()->where('slug', 'womens-bags')->first()->tr('name'));
+        $this->assertTrue(Category::query()->roots()->where('slug', 'books-art')->exists());
+        $this->assertTrue(Category::query()->roots()->where('slug', 'sports')->exists());
+        $this->assertSame(11, Category::query()->roots()->count());
     }
 
     public function test_editor_creates_a_sub_category_from_the_panel(): void

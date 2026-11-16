@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * صفحه‌ی ثابت فروشگاه: درباره‌ی ما، تماس، شرایط، مرجوعی، حریم خصوصی.
+ * صفحه‌ی ثابت فروشگاه: درباره‌ی ما، تماس، شرایط، برگشت جنس، حریم خصوصی.
  */
 class Page extends Model
 {

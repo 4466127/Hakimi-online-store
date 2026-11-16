@@ -30,9 +30,9 @@ class SeederTest extends TestCase
         $this->assertSame(34, Province::query()->distinct()->count('code'));
         $this->assertSame('کابل', Province::query()->active()->first()->tr('name'));
 
-        // تحویل فعلاً فقط در کابل و غزنی
-        $this->assertEqualsCanonicalizing(['KAB', 'GHA'], Province::query()->deliverable()->pluck('code')->all());
-        $this->assertSame(['کابل', 'غزنی'], Province::deliverableNames());
+        // تحویل فعلاً فقط در کابل (تصمیم صاحب پروژه، ۲۶ عقرب ۱۴۰۵)
+        $this->assertSame(['KAB'], Province::query()->deliverable()->pluck('code')->all());
+        $this->assertSame(['کابل'], Province::deliverableNames());
 
         $afn = Currency::defaultCurrency();
         $this->assertSame('AFN', $afn->code);

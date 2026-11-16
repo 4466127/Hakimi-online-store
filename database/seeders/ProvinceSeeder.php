@@ -15,8 +15,8 @@ use Illuminate\Database\Seeder;
  */
 class ProvinceSeeder extends Seeder
 {
-    /** ولایت‌هایی که از روز اول تحویل در آن‌ها فعال است. بقیه «زیر کار است». */
-    private const DELIVERY_FROM_START = ['KAB', 'GHA'];
+    /** ولایت‌هایی که از روز اول تحویل در آن‌ها فعال است (فعلاً فقط کابل). بقیه «زیر کار است». */
+    private const DELIVERY_FROM_START = ['KAB'];
 
     /** اول شهرهای کلان، بعد بقیه به ترتیب الفبا. */
     private const PROVINCES = [

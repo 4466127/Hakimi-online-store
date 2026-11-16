@@ -17,7 +17,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * صفحه‌های ثابت فروشگاه: درباره‌ی ما، تماس، شرایط، مرجوعی، حریم خصوصی.
+ * صفحه‌های ثابت فروشگاه: درباره‌ی ما، تماس، شرایط، برگشت جنس، حریم خصوصی.
  */
 class PageResource extends Resource
 {

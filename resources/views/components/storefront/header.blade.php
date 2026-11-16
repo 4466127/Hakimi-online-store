@@ -1,7 +1,7 @@
 {{--
     سربرگ فروشگاه (الگو: دیجی‌کالا):
-      ردیف ۱: لوگو، جستجو، حساب و سبد
-      ردیف ۲ (کمپیوتر و تبلت): منوی «دسته‌بندی کالاها»، «در بازارک بفروشید!»، ولایت‌های تحویل
+      ردیف ۱: لوگو، جستجو، حساب و سبد (در موبایل: لوگو، جستجو و تماس در یک خط)
+      ردیف ۲ (کمپیوتر و تبلت): منوی «دسته‌بندی اجناس»، «در بازارک بفروشید!»، ولایت‌های تحویل
     بخش‌هایی که هنوز ساخته نشده (جستجو، سبد) خودکار «به‌زودی» نشان داده می‌شود و وقتی
     آدرس‌شان در مرحله‌های بعد ساخته شد، بی تغییر این فایل فعال می‌شود.
 --}}
@@ -25,11 +25,12 @@
         </div>
     @endif
 
-    <div class="container-page flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+    {{-- ردیف ۱. در موبایل همه در یک خط (لوگو، جستجو، تماس) تا سربرگ چسپیده جای کمتری بگیرد --}}
+    <div class="container-page flex items-center gap-3 py-2.5 md:gap-4 md:py-3">
         {{-- لوگو --}}
         <a href="{{ route('home') }}" class="flex shrink-0 items-center" aria-label="{{ $store->name() }}">
             <img src="{{ $store->logoUrl() }}" alt="{{ $store->name() }}" width="154" height="44"
-                 class="h-10 w-auto sm:h-11" fetchpriority="high">
+                 class="h-8 w-auto sm:h-10 md:h-11" fetchpriority="high">
         </a>
 
         {{-- حساب و سبد (کمپیوتر) --}}
@@ -80,21 +81,21 @@
 
         {{-- تماس سریع در موبایل --}}
         @if ($store->telLink())
-            <a href="{{ $store->telLink() }}" class="btn btn-outline ms-auto px-3 md:hidden" aria-label="{{ __('store.header.call') }}">
+            <a href="{{ $store->telLink() }}" class="btn btn-outline order-last shrink-0 px-3 md:hidden" aria-label="{{ __('store.header.call') }}">
                 @svg('heroicon-o-phone', 'size-5')
             </a>
         @endif
 
         {{-- جستجو --}}
         <form action="{{ $hasSearch ? route('search') : '#' }}" method="get" role="search"
-              class="order-last w-full md:order-2 md:w-auto md:max-w-xl md:flex-1">
+              class="min-w-0 flex-1 md:order-2 md:max-w-xl">
             <label class="relative block">
                 <span class="sr-only">{{ __('store.nav.search') }}</span>
                 <span class="pointer-events-none absolute inset-y-0 start-3 flex items-center text-gray-400">
                     @svg('heroicon-o-magnifying-glass', 'size-5')
                 </span>
                 <input type="search" name="q" value="{{ request('q') }}"
-                       placeholder="{{ $hasSearch ? __('store.header.search_placeholder') : __('store.header.search_placeholder').' ('.__('store.header.soon').')' }}"
+                       placeholder="{{ __('store.header.search_placeholder', ['name' => $store->name()]) }}{{ $hasSearch ? '' : ' ('.__('store.header.soon').')' }}"
                        @disabled(! $hasSearch)
                        class="h-11 w-full rounded-xl border border-transparent bg-gray-100 ps-10 pe-4 text-sm placeholder:text-gray-500 focus:border-brand-600 focus:bg-white disabled:cursor-not-allowed disabled:opacity-80">
             </label>

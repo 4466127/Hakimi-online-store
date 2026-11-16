@@ -17,7 +17,7 @@ class PageSeeder extends Seeder
         ['about', 'درباره‌ی ما'],
         ['contact', 'تماس با ما'],
         ['terms', 'شرایط و قوانین خرید'],
-        ['returns', 'مرجوعی و ضمانت'],
+        ['returns', 'برگشت جنس و ضمانت'],
         ['privacy', 'حریم خصوصی'],
     ];
 

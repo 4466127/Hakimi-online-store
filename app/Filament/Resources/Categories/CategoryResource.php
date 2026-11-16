@@ -18,7 +18,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * دسته‌بندی کالاها (سه سطح). منوی «دسته‌بندی کالاها» در سایت از همین ساخته می‌شود.
+ * دسته‌بندی اجناس (سه سطح). منوی «دسته‌بندی اجناس» در سایت از همین ساخته می‌شود.
  */
 class CategoryResource extends Resource
 {

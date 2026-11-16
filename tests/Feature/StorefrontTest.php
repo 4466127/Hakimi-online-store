@@ -41,15 +41,15 @@ class StorefrontTest extends TestCase
         }
     }
 
-    public function test_home_page_says_delivery_is_only_in_kabul_and_ghazni_for_now(): void
+    public function test_home_page_says_delivery_is_only_in_kabul_for_now(): void
     {
         $this->seed(ProvinceSeeder::class);
 
         $response = $this->get('/');
 
-        $response->assertSee('تحویل فعلاً در کابل و غزنی — بقیه‌ی ولایات زیر کار است');
+        $response->assertSee('تحویل فعلاً در کابل — بقیه‌ی ولایات زیر کار است');
         $response->assertSee('کابل — '.__('store.home.delivery_active'));
-        $response->assertSee('غزنی — '.__('store.home.delivery_active'));
+        $response->assertDontSee('غزنی — '.__('store.home.delivery_active'));
         $response->assertSee(__('store.home.delivery_other_provinces').' — '.__('store.home.delivery_soon'));
         $response->assertDontSee('هرات — ');
     }
@@ -117,12 +117,12 @@ class StorefrontTest extends TestCase
 
     public function test_footer_lists_only_pages_that_have_text(): void
     {
-        Page::factory()->create(['slug' => 'returns', 'title' => ['fa' => 'مرجوعی و ضمانت']]);
+        Page::factory()->create(['slug' => 'returns', 'title' => ['fa' => 'برگشت جنس و ضمانت']]);
         Page::factory()->empty()->create(['slug' => 'privacy', 'title' => ['fa' => 'حریم خصوصی']]);
 
         $response = $this->get('/');
 
-        $response->assertSee('مرجوعی و ضمانت');
+        $response->assertSee('برگشت جنس و ضمانت');
         $response->assertDontSee('حریم خصوصی');
     }
 
@@ -154,6 +154,19 @@ class StorefrontTest extends TestCase
             $this->assertFileExists(public_path($file));
             // انترنت ضعیف: هیچ فایل لوگو بیش از ۲۰ کیلوبایت نیست
             $this->assertLessThan(20 * 1024, filesize(public_path($file)), $file);
+        }
+    }
+
+    public function test_site_can_be_added_to_the_phone_home_screen(): void
+    {
+        $this->get('/')->assertSee('<link rel="manifest" href="/manifest.webmanifest">', false);
+
+        $manifest = json_decode((string) file_get_contents(public_path('manifest.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('بازارک', $manifest['short_name']);
+        $this->assertSame('rtl', $manifest['dir']);
+        $this->assertSame('standalone', $manifest['display']);
+        foreach ($manifest['icons'] as $icon) {
+            $this->assertFileExists(public_path(ltrim($icon['src'], '/')));
         }
     }
 }

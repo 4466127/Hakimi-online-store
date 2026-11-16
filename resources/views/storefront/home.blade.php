@@ -21,17 +21,17 @@
 
     {{-- معرفی --}}
     <section class="bg-gradient-to-b from-brand-50 to-gray-50">
-        <div class="container-page py-10 text-center md:py-16">
+        <div class="container-page py-6 text-center md:py-16">
             @unless ($store->isOpen())
                 <span class="inline-block rounded-full bg-accent-100 px-4 py-1 text-sm font-medium text-accent-600">
                     {{ __('store.home.soon_badge') }}
                 </span>
             @endunless
 
-            <h1 class="mx-auto mt-4 max-w-2xl text-2xl leading-10 font-bold text-gray-900 md:text-4xl md:leading-[3.5rem]">
+            <h1 class="mx-auto mt-3 max-w-2xl text-xl leading-9 font-bold text-gray-900 md:mt-4 md:text-4xl md:leading-[3.5rem]">
                 {{ $store->isOpen() ? $store->name() : __('store.home.soon_heading') }}
             </h1>
-            <p class="mx-auto mt-4 max-w-xl leading-8 text-gray-600">
+            <p class="mx-auto mt-3 max-w-xl text-sm leading-7 text-gray-600 md:mt-4 md:text-base md:leading-8">
                 {{ __('store.home.soon_text') }}
             </p>
 
@@ -57,9 +57,25 @@
 
     {{-- دسته‌های اصلی (از پنل مدیریت) --}}
     @if (count($categories) > 0)
-        <section class="container-page mt-8">
+        <section class="container-page mt-6 md:mt-8">
             <h2 class="mb-4 text-lg font-bold text-gray-900">{{ __('store.home.categories_heading') }}</h2>
-            <ul class="grid grid-cols-2 gap-3 md:grid-cols-4">
+
+            {{-- موبایل: دایره‌های کوچک مثل دیجی‌کالا (ساده، بی حرکت؛ همه دیده می‌شود، بی اسکرول افقی) --}}
+            <ul class="grid grid-cols-4 gap-x-2 gap-y-4 md:hidden">
+                @foreach ($categories as $category)
+                    <li>
+                        <a href="{{ route('category.show', ['slug' => $category['slug']]) }}" class="flex flex-col items-center gap-1.5 text-center">
+                            <span class="flex size-14 items-center justify-center rounded-full {{ $tileColors[$loop->index % count($tileColors)] }}">
+                                @svg($category['icon'] ?? 'heroicon-o-shopping-bag', 'size-7')
+                            </span>
+                            <span class="line-clamp-2 text-[0.7rem] leading-5 font-medium text-gray-700">{{ $category['name'] }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+
+            {{-- کمپیوتر و تبلت: کارت با نام زیرگروه‌ها --}}
+            <ul class="hidden grid-cols-4 gap-3 md:grid">
                 @foreach ($categories as $category)
                     <li>
                         <a href="{{ route('category.show', ['slug' => $category['slug']]) }}" class="card block h-full p-4 transition-shadow hover:shadow-md">

@@ -26,7 +26,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * مشخصه‌های کالا (سایز، رنگ، RAM، …) با گزینه‌هایشان. اینکه هر دسته کدام مشخصه‌ها را دارد،
+ * مشخصه‌های جنس (سایز، رنگ، RAM، …) با گزینه‌هایشان. اینکه هر دسته کدام مشخصه‌ها را دارد،
  * در صفحه‌ی همان دسته («مشخصه‌های این دسته») تعیین می‌شود.
  */
 class AttributeResource extends Resource

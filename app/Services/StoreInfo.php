@@ -118,7 +118,7 @@ class StoreInfo
         return Province::deliverableNames();
     }
 
-    /** «کابل و غزنی» — برای جمله‌ها. اگر هیچ ولایتی فعال نبود، متن خالی. */
+    /** «کابل» یا «کابل و غزنی» — برای جمله‌ها. اگر هیچ ولایتی فعال نبود، متن خالی. */
     public function deliveryProvincesText(): string
     {
         $names = $this->deliveryProvinces();

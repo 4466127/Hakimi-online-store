@@ -8,8 +8,10 @@ use App\Models\Category;
 use Illuminate\Database\Seeder;
 
 /**
- * دسته‌های اولیه به الگوی منوی دیجی‌کالا (بی خودرو، طلا و ابزارآلات — به خواست صاحب پروژه)،
- * با نرخ کمیسیون پیش‌فرض صاحب پروژه روی دسته‌هایی که نرخ ویژه دارند (بقیه = پیش‌فرض ۷٪ تنظیمات).
+ * دسته‌های اولیه به الگوی منوی دیجی‌کالا، با کلمه‌های افغانستانی (بوت، بکس، جاکت، پکه، کمره، قرطاسیه…).
+ * بی خودرو، طلا و ابزارآلات؛ «سلامت و پزشکی» برداشته و «کتاب، قرطاسیه و هنر» و «لوازم ورزشی»
+ * اضافه شد (به خواست صاحب پروژه). نرخ کمیسیون پیش‌فرض صاحب پروژه روی دسته‌هایی که نرخ ویژه
+ * دارند (بقیه = پیش‌فرض ۷٪ تنظیمات).
  *
  * فقط داده‌ی شروع است: مدیر از پنل همه را عوض، اضافه یا خاموش می‌کند. چند بار اجرا
  * کردنش بی‌خطر است: دسته‌ی موجود (با همان آدرس) دوباره ساخته یا تغییر داده نمی‌شود.
@@ -21,19 +23,19 @@ class CategorySeeder extends Seeder
      * گروه:        [نام، آدرس، زیردسته‌ها، کمیسیون٪|null]
      * زیردسته:     [نام، آدرس]
      */
-    private const TREE = [
+    public const TREE = [
         ['موبایل و لوازم', 'mobile', 'device-phone-mobile', null, [
-            ['گوشی موبایل', 'mobile-phones', [
-                ['گوشی سامسونگ', 'samsung-phones'],
-                ['گوشی شیائومی', 'xiaomi-phones'],
-                ['گوشی اپل (آیفون)', 'apple-phones'],
-                ['گوشی ساده (دکمه‌ای)', 'feature-phones'],
+            ['موبایل', 'mobile-phones', [
+                ['موبایل سامسونگ', 'samsung-phones'],
+                ['موبایل شیائومی', 'xiaomi-phones'],
+                ['موبایل اپل (آیفون)', 'apple-phones'],
+                ['موبایل ساده (دکمه‌ای)', 'feature-phones'],
             ], 3],
             ['لوازم جانبی موبایل', 'mobile-accessories', [
                 ['چارجر', 'chargers'],
                 ['کیبل', 'cables'],
-                ['پوش (قاب)', 'phone-cases'],
-                ['گلس (محافظ صفحه)', 'screen-protectors'],
+                ['پوش موبایل', 'phone-cases'],
+                ['گلس موبایل', 'screen-protectors'],
                 ['پاوربانک', 'power-banks'],
                 ['گوشکی و هدفون', 'headphones'],
             ], 6],
@@ -50,65 +52,67 @@ class CategorySeeder extends Seeder
                 ['چارجر لپتاپ', 'laptop-chargers'],
             ], 6],
         ]],
-        ['کالای دیجیتال', 'digital', 'tv', null, [
+        ['وسایل دیجیتال', 'digital', 'tv', null, [
             ['تبلت', 'tablets', [], null],
             ['ساعت و بند هوشمند', 'smartwatches', [], null],
             ['اسپیکر و سیستم صوتی', 'speakers', [], null],
-            ['دوربین', 'cameras', [], null],
+            ['کمره', 'cameras', [], null],
             ['کنسول و بازی', 'gaming', [], null],
         ]],
         ['بوت و کفش', 'shoes', 'shopping-bag', 7, [
-            ['کفش مردانه', 'mens-shoes', [
-                ['کفش رسمی مردانه', 'mens-formal-shoes'],
-                ['کفش اسپورت مردانه', 'mens-sport-shoes'],
-                ['بوت مردانه', 'mens-boots'],
+            ['بوت مردانه', 'mens-shoes', [
+                ['بوت رسمی مردانه', 'mens-formal-shoes'],
+                ['بوت اسپورت مردانه', 'mens-sport-shoes'],
+                ['موزه (بوت ساق‌دار) مردانه', 'mens-boots'],
                 ['چپلی', 'chaplis'],
             ], null],
-            ['کفش زنانه', 'womens-shoes', [
-                ['کفش رسمی زنانه', 'womens-formal-shoes'],
-                ['کفش اسپورت زنانه', 'womens-sport-shoes'],
-                ['بوت زنانه', 'womens-boots'],
-                ['سندل', 'sandals'],
+            ['بوت زنانه', 'womens-shoes', [
+                ['بوت رسمی زنانه', 'womens-formal-shoes'],
+                ['بوت اسپورت زنانه', 'womens-sport-shoes'],
+                ['موزه (بوت ساق‌دار) زنانه', 'womens-boots'],
+                ['سندل و چپلک', 'sandals'],
             ], null],
-            ['کفش بچه‌گانه', 'kids-shoes', [], null],
+            ['بوت بچه‌گانه', 'kids-shoes', [], null],
         ]],
-        ['لباس افغانی و مُد', 'clothing', 'sparkles', 7, [
+        ['لباس هزارگی و افغانی', 'clothing', 'sparkles', 7, [
+            ['لباس زنانه', 'womens-clothing', [
+                ['لباس هزارگی زنانه', 'womens-traditional'],
+                ['لباس افغانی زنانه', 'womens-afghan'],
+                ['چادر و حجاب', 'hijab'],
+                ['جاکت و بالاپوش زنانه', 'womens-jackets'],
+                ['پیراهن و دامن زنانه', 'womens-dresses'],
+            ], null],
             ['لباس مردانه', 'mens-clothing', [
+                ['لباس هزارگی مردانه', 'mens-hazaragi'],
                 ['پیراهن تنبان', 'perahan-tunban'],
                 ['واسکت', 'waskat'],
                 ['چپن', 'chapan'],
                 ['کلاه و پکول', 'hats'],
-                ['کاپشن و پالتو مردانه', 'mens-jackets'],
+                ['جاکت و بالاپوش مردانه', 'mens-jackets'],
                 ['پیراهن و تی‌شرت مردانه', 'mens-shirts'],
                 ['پتلون مردانه', 'mens-pants'],
-            ], null],
-            ['لباس زنانه', 'womens-clothing', [
-                ['لباس محلی زنانه', 'womens-traditional'],
-                ['چادر و حجاب', 'hijab'],
-                ['کاپشن و پالتو زنانه', 'womens-jackets'],
-                ['مانتو و پیراهن زنانه', 'womens-dresses'],
             ], null],
             ['لباس بچه‌گانه', 'kids-clothing', [
                 ['لباس نوزاد', 'baby-clothing'],
                 ['لباس پسرانه', 'boys-clothing'],
                 ['لباس دخترانه', 'girls-clothing'],
             ], null],
-            ['کیف و اکسسوری', 'bags-accessories', [
-                ['کیف زنانه', 'womens-bags'],
-                ['کیف مردانه و کمربند', 'mens-bags-belts'],
-                ['ساعت مچی', 'wrist-watches'],
+            ['بکس و اکسسوری', 'bags-accessories', [
+                ['بکس زنانه', 'womens-bags'],
+                ['بکس مردانه و کمربند', 'mens-bags-belts'],
+                ['ساعت دستی', 'wrist-watches'],
                 ['عینک آفتابی', 'sunglasses'],
-                ['شال و روسری', 'scarves'],
+                ['شال و دستمال سر', 'scarves'],
             ], 7],
         ]],
-        ['محصولات بومی و محلی', 'local-products', 'gift', null, [
+        ['اجناس وطنی و محلی', 'local-products', 'gift', null, [
             ['صنایع دستی', 'handicrafts', [
                 ['قالین و گلیم', 'carpets-rugs'],
                 ['گلدوزی و خامک‌دوزی', 'embroidery'],
                 ['ظروف سنگی و لاجورد', 'lapis-stone'],
                 ['زیورات محلی', 'traditional-jewelry'],
             ], null],
-            ['خوراکی محلی', 'local-food', [
+            ['خوراکی وطنی', 'local-food', [
                 ['خشکبار (کشمش، بادام، چارمغز)', 'dried-fruits-nuts'],
                 ['زعفران', 'saffron'],
                 ['چای و ادویه', 'tea-spices'],
@@ -116,7 +120,7 @@ class CategorySeeder extends Seeder
         ]],
         ['خانه و آشپزخانه', 'home-kitchen', 'home-modern', null, [
             ['ظروف آشپزخانه', 'cookware', [
-                ['دیگ و قابلمه', 'pots-pans'],
+                ['دیگ و دیگچه', 'pots-pans'],
                 ['ظروف چای و دسترخوان', 'tea-sets'],
                 ['ظروف نگهداری', 'storage-containers'],
             ], null],
@@ -125,31 +129,49 @@ class CategorySeeder extends Seeder
                 ['توشک، بالشت و کمپل', 'bedding'],
                 ['دکور خانه', 'decor'],
             ], null],
-            ['شستشو و نظافت', 'cleaning', [], null],
+            ['صفایی و شستشو', 'cleaning', [], null],
         ]],
-        ['لوازم خانگی برقی', 'home-appliances', 'light-bulb', null, [
-            ['لوازم برقی آشپزخانه', 'kitchen-appliances', [
+        ['وسایل برقی خانه', 'home-appliances', 'light-bulb', null, [
+            ['وسایل برقی آشپزخانه', 'kitchen-appliances', [
                 ['سماوار و چای‌جوش برقی', 'kettles'],
-                ['مخلوط‌کن و آب‌میوه‌گیری', 'blenders'],
+                ['مکسر و جوس‌گیر', 'blenders'],
             ], null],
-            ['گرمایشی و سرمایشی', 'heating-cooling', [
+            ['بخاری و پکه', 'heating-cooling', [
                 ['بخاری برقی', 'electric-heaters'],
-                ['پکه (پنکه)', 'fans'],
+                ['پکه', 'fans'],
             ], null],
-            ['اتو و لوازم شستشو', 'irons', [], null],
+            ['اتو و ماشین لباسشویی', 'irons', [], null],
             ['تلویزیون', 'televisions', [], null],
         ]],
-        ['آرایشی و بهداشتی', 'beauty', 'heart', null, [
-            ['لوازم آرایشی', 'makeup', [], null],
-            ['بهداشت شخصی', 'personal-care', [], null],
-            ['عطر و ادکلن', 'perfumes', [], null],
+        ['آرایشی و صحی', 'beauty', 'heart', null, [
+            ['وسایل آرایش', 'makeup', [], null],
+            ['وسایل صحی شخصی', 'personal-care', [], null],
+            ['عطر', 'perfumes', [], null],
         ]],
-        ['سلامت و پزشکی', 'health', 'beaker', null, [
-            ['لوازم پزشکی خانگی', 'home-medical', [
-                ['فشارسنج', 'blood-pressure-monitors'],
-                ['ترمامتر', 'thermometers'],
+        ['کتاب، قرطاسیه و هنر', 'books-art', 'book-open', null, [
+            ['کتاب', 'books', [
+                ['کتاب درسی و آموزشی', 'textbooks'],
+                ['رمان و ادبیات', 'literature'],
+                ['کتاب دینی', 'religious-books'],
+                ['کتاب کودک', 'kids-books'],
             ], null],
-            ['ماسک و دستکش', 'masks-gloves', [], null],
+            ['قرطاسیه', 'stationery', [
+                ['کتابچه و دفتر', 'notebooks'],
+                ['قلم و پنسل', 'pens-pencils'],
+                ['بکس مکتب', 'school-bags'],
+            ], null],
+            ['هنر و خطاطی', 'art-supplies', [
+                ['رنگ و وسایل نقاشی', 'painting-supplies'],
+                ['وسایل خطاطی', 'calligraphy'],
+                ['تابلو و نقاشی', 'paintings'],
+            ], null],
+        ]],
+        ['لوازم ورزشی', 'sports', 'trophy', null, [
+            ['لباس ورزشی', 'sportswear', [], null],
+            ['توپ و وسایل بازی', 'balls-games', [], null],
+            ['وسایل بدنسازی', 'fitness', [], null],
+            ['بایسکل', 'bicycles', [], null],
+            ['پکنیک و سفر', 'outdoor', [], null],
         ]],
     ];
 
