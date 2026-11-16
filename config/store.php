@@ -22,6 +22,11 @@ return [
     // زبان‌های راست‌چین.
     'rtl_locales' => ['fa', 'ps'],
 
+    // سبد خرید: بیشترین تعداد یک نوع در سبد (و سفارش)؛ اگر موجودی کمتر بود موجودی.
+    'cart' => [
+        'max_qty_per_line' => 20,
+    ],
+
     // قفل حساب مدیر بعد از این تعداد رمز اشتباه، برای این چند دقیقه.
     'admin_lock_after_attempts' => 10,
     'admin_lock_minutes' => 15,
@@ -36,6 +41,10 @@ return [
         'store.address' => null,
         'store.logo' => null,
         'store.is_open' => false,
+
+        // تحویل حضوری از دفتر مرکزی (آدرس همان «آدرس» فروشگاه)، بی کرایه
+        'delivery.pickup_enabled' => true,
+        'delivery.pickup_note' => null,
 
         // بازارگاه (فروشندگان): از پنل «تنظیمات بازارگاه» عوض می‌شود
         'marketplace.default_commission_rate' => 7,        // «سایر اجناس» و هر دسته‌ای که نرخ ندارد

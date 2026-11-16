@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Storefront\AccountController;
+use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CategoryController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\HomeController;
@@ -30,6 +31,14 @@ Route::get('/p/{slug}', [ProductController::class, 'show'])
     ->where('slug', '[^/]+')
     ->name('product.show');
 Route::get('/search', SearchController::class)->middleware('throttle:storefront-search')->name('search');
+
+// سبد خرید (مهمان هم می‌تواند؛ سبد با کوکی)
+Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
+Route::middleware('throttle:storefront-cart')->group(function () {
+    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::patch('/cart/items/{item}', [CartController::class, 'update'])->whereNumber('item')->name('cart.update');
+    Route::delete('/cart/items/{item}', [CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
+});
 
 // دسته‌بندی اجناس
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories');

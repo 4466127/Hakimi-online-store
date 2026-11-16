@@ -33,6 +33,7 @@
         @if ($preview)
             <p class="alert alert-warning mb-4" role="status">{{ __('store.product.preview', ['status' => $product->statusLabel()]) }}</p>
         @endif
+        <x-storefront.flash />
 
         {{-- مسیر صفحه --}}
         <nav aria-label="{{ __('store.categories.breadcrumb') }}" class="mb-4 text-xs text-gray-500">
@@ -149,9 +150,21 @@
 
                 {{-- خرید --}}
                 <div class="mt-4 flex flex-col gap-2 sm:flex-row">
-                    @if (Route::has('cart.add'))
-                        {{-- مرحله‌ی ۴: فورم افزودن به سبد اینجا می‌آید --}}
-                    @else
+                    @if ($current && Route::has('cart.add'))
+                        <form method="post" action="{{ route('cart.add') }}" class="flex flex-1 gap-2">
+                            @csrf
+                            <input type="hidden" name="variant_id" value="{{ $current['id'] }}" :value="current ? current.id : ''">
+                            <label class="sr-only" for="add-qty">{{ __('cart.add_qty') }}</label>
+                            <select id="add-qty" name="qty" class="form-input w-20 shrink-0 px-2" aria-label="{{ __('cart.add_qty') }}">
+                                @for ($n = 1; $n <= 10; $n++)
+                                    <option value="{{ $n }}">{{ \App\Support\Num::toFa((string) $n) }}</option>
+                                @endfor
+                            </select>
+                            <button type="submit" class="btn btn-primary flex-1" :disabled="! current || ! current.available" @disabled(! $current['available'])>
+                                @svg('heroicon-o-shopping-cart', 'size-5') {{ __('cart.add') }}
+                            </button>
+                        </form>
+                    @elseif (! Route::has('cart.add'))
                         <button type="button" class="btn btn-primary flex-1" disabled aria-disabled="true" title="{{ __('store.header.soon') }}">
                             @svg('heroicon-o-shopping-cart', 'size-5') {{ __('store.product.add_to_cart') }} ({{ __('store.header.soon') }})
                         </button>
@@ -178,6 +191,12 @@
                         <li class="flex items-start gap-2">
                             @svg('heroicon-o-truck', 'mt-0.5 size-5 shrink-0 text-gray-400')
                             <span>{{ __('store.product.delivery', ['provinces' => $deliveryText]) }}</span>
+                        </li>
+                    @endif
+                    @if ($store->pickupEnabled())
+                        <li class="flex items-start gap-2">
+                            @svg('heroicon-o-map-pin', 'mt-0.5 size-5 shrink-0 text-gray-400')
+                            <span>{{ __('store.product.pickup') }} <span class="text-gray-500">({{ $store->pickupAddress() }})</span>@if ($store->pickupNote()) <span class="block text-xs text-gray-500">{{ $store->pickupNote() }}</span>@endif</span>
                         </li>
                     @endif
                     <li class="flex items-start gap-2">

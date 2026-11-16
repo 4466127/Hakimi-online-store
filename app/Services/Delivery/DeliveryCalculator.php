@@ -24,8 +24,22 @@ use Carbon\CarbonInterface;
  */
 class DeliveryCalculator
 {
+    /** روش‌های تحویل: درِ خانه (کرایه‌ی روز + وزن) یا حضوری از دفتر مرکزی (بی کرایه). */
+    public const METHOD_DELIVERY = 'delivery';
+
+    public const METHOD_PICKUP = 'pickup';
+
     /** تا چند روز جلو دنبال روز کاری می‌گردیم (جلوی حلقه‌ی بی‌پایان وقتی همه‌ی روزها بی تحویل است). */
     private const SCAN_DAYS = 60;
+
+    /**
+     * تحویل حضوری از دفتر مرکزی هیچ کرایه‌ای ندارد (تصمیم صاحب پروژه، ۲۶ عقرب ۱۴۰۵)؛ نه روز می‌خواهد
+     * نه وزن و نه آدرس مشتری. فعال بودنش با StoreInfo::pickupEnabled() است.
+     */
+    public function pickupFee(): string
+    {
+        return Money::of(0);
+    }
 
     /**
      * منطقه‌ی تحویل یک ولایت: منطقه‌ی خودش، وگرنه منطقه‌ی «هر ولایت» (province_id خالی).

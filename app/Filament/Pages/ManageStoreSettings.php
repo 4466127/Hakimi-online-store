@@ -45,6 +45,8 @@ class ManageStoreSettings extends Page
         'address' => 'store.address',
         'logo' => 'store.logo',
         'is_open' => 'store.is_open',
+        'pickup_enabled' => 'delivery.pickup_enabled',
+        'pickup_note' => 'delivery.pickup_note',
     ];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
@@ -86,6 +88,7 @@ class ManageStoreSettings extends Page
             $state[$field] = $settings->get($key);
         }
         $state['is_open'] = (bool) $state['is_open'];
+        $state['pickup_enabled'] = (bool) $state['pickup_enabled'];
 
         $this->form->fill($state);
     }
@@ -156,6 +159,20 @@ class ManageStoreSettings extends Page
                             ->maxLength(300),
                     ]),
 
+                Section::make(__('admin.settings.section_pickup'))
+                    ->description(__('admin.settings.section_pickup_help'))
+                    ->schema([
+                        Toggle::make('pickup_enabled')
+                            ->label(__('admin.settings.pickup_enabled'))
+                            ->helperText(__('admin.settings.pickup_enabled_help')),
+                        Textarea::make('pickup_note')
+                            ->label(__('admin.settings.pickup_note'))
+                            ->placeholder(__('admin.settings.pickup_note_placeholder'))
+                            ->helperText(__('admin.settings.pickup_note_help'))
+                            ->rows(2)
+                            ->maxLength(300),
+                    ]),
+
                 Section::make(__('admin.settings.section_status'))
                     ->schema([
                         Toggle::make('is_open')
@@ -200,6 +217,8 @@ class ManageStoreSettings extends Page
             $values[$key] = Phone::normalize($values[$key]) ?? null;
         }
         $values['store.is_open'] = (bool) $values['store.is_open'];
+        $values['delivery.pickup_enabled'] = (bool) $values['delivery.pickup_enabled'];
+        $values['delivery.pickup_note'] = ($note = trim((string) $values['delivery.pickup_note'])) === '' ? null : $note;
 
         $changes = $settings->setMany($values, auth()->id());
 

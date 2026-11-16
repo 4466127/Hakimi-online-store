@@ -303,10 +303,10 @@ Index: `product_id`، (`is_active`)، `barcode`.
 ### ج) سبد
 
 #### `carts`
-`id`، `token` CHAR(36) UNIQUE (کوکی)، `customer_id` FK NULL، `currency_code` CHAR(3)، `expires_at`، timestamps. Index `customer_id`، `expires_at` (پاک‌سازی شبانه‌ی سبدهای منقضی).
+**ساخته شد (۴-۱):** `id`، `token` CHAR(36) UNIQUE (کوکی مهمان)، `customer_id` FK NULL **UNIQUE** (یک سبد برای هر مشتری؛ حذف مشتری ← حذف سبد)، `expires_at` (۳۰ روز از آخرین تغییر؛ پاک‌سازی شبانه‌ی سبدهای کهنه بعداً)، timestamps. بی `currency_code` (همیشه افغانی).
 
 #### `cart_items`
-`id`، `cart_id` FK، `variant_id` FK، `qty` DECIMAL(12,3)، timestamps. UNIQUE (`cart_id`, `variant_id`).
+**ساخته شد (۴-۱):** `id`، `cart_id` FK، `variant_id` FK (حذف نوع ← حذف خط)، `qty` **INT** بدون علامت (عدد صحیح؛ جنس کسری فعلاً نیست)، timestamps. UNIQUE (`cart_id`, `variant_id`).
 
 ### چ) سفارش، پرداخت، موجودی
 
@@ -405,7 +405,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
 | ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
 | ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products` ✓، `product_attribute_values` ✓، `product_variants` ✓، `variant_attribute_values` ✓، `product_images` ✓، `product_relations` ✓، `slug_redirects` ✓ (۳-۲)، `banners`، `home_sections` |
-| ۴ | `delivery_zones` ✓، `delivery_slots` ✓، `delivery_weight_tiers` ✓ (کرایه، ۲۶ عقرب)، `customer_addresses`، `carts`، `cart_items`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
+| ۴ | `carts` ✓، `cart_items` ✓ (۴-۱)، `delivery_zones` ✓، `delivery_slots` ✓، `delivery_weight_tiers` ✓ (کرایه، ۲۶ عقرب)، `customer_addresses`، `carts`، `cart_items`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |
 
 مرحله‌ی ۶ جدول تازه ندارد (سرور، امنیت، SEO).

@@ -12,6 +12,7 @@
     $hasCart = Route::has('cart.show');
     $customer = auth('customer')->user();
     $menu = app(\App\Services\CategoryMenu::class)->menu();
+    $cartCount = $hasCart ? app(\App\Services\Cart\CartService::class)->count(request()) : 0;
 @endphp
 
 <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
@@ -68,8 +69,11 @@
             <span class="mx-1 h-6 w-px bg-gray-200" aria-hidden="true"></span>
 
             @if ($hasCart)
-                <a href="{{ route('cart.show') }}" class="btn btn-outline border-transparent px-3" aria-label="{{ __('store.nav.cart') }}">
+                <a href="{{ route('cart.show') }}" class="btn btn-outline relative border-transparent px-3" aria-label="{{ __('store.nav.cart') }}@if ($cartCount > 0) — {{ __('cart.cart_count', ['count' => \App\Support\Num::toFa((string) $cartCount)]) }}@endif">
                     @svg('heroicon-o-shopping-cart', 'size-6')
+                    @if ($cartCount > 0)
+                        <span class="absolute -top-0.5 start-1 flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white" aria-hidden="true">{{ \App\Support\Num::toFa((string) min($cartCount, 99)) }}</span>
+                    @endif
                 </a>
             @else
                 <span class="btn cursor-not-allowed px-3 text-gray-300" aria-disabled="true" title="{{ __('store.nav.cart') }} — {{ __('store.header.soon') }}">

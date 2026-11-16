@@ -44,6 +44,28 @@ class StoreInfo
         return $this->settings->get('store.address');
     }
 
+    /**
+     * تحویل حضوری از دفتر مرکزی (بی کرایه) در سایت دیده شود؟ روشن در تنظیمات + آدرس دفتر نوشته شده.
+     */
+    public function pickupEnabled(): bool
+    {
+        return (bool) $this->settings->get('delivery.pickup_enabled') && trim((string) $this->address()) !== '';
+    }
+
+    /** آدرس دفتر مرکزی برای تحویل حضوری. */
+    public function pickupAddress(): ?string
+    {
+        return $this->pickupEnabled() ? trim((string) $this->address()) : null;
+    }
+
+    /** توضیح اختیاری مدیر (ساعت کار…). */
+    public function pickupNote(): ?string
+    {
+        $note = trim((string) $this->settings->get('delivery.pickup_note'));
+
+        return $this->pickupEnabled() && $note !== '' ? $note : null;
+    }
+
     /** لوگوی پیش‌فرض بازارک (WebP، در public/images/brand). */
     public const DEFAULT_LOGO = '/images/brand/bazarak-logo.webp';
 

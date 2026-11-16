@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\Cart\CartService;
 use App\Services\CategoryMenu;
 use App\Services\Settings;
 use App\Services\StoreInfo;
@@ -28,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
         // تنظیمات فروشگاه در هر درخواست فقط یک بار خوانده شود
         $this->app->singleton(Settings::class);
         $this->app->singleton(CategoryMenu::class);
+        // سبد: شمارنده‌ی سربرگ در هر درخواست فقط یک بار حساب شود
+        $this->app->scoped(CartService::class);
     }
 
     public function boot(): void
@@ -46,6 +49,9 @@ class AppServiceProvider extends ServiceProvider
 
         // جستجو: ۶۰ بار در دقیقه از یک IP (جلوی فشار آوردن به دیتابیس)
         RateLimiter::for('storefront-search', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        // سبد: ۶۰ تغییر در دقیقه از یک IP
+        RateLimiter::for('storefront-cart', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
 
         // صفحه‌بندی فارسی و سبک برای سایت مشتری (پنل مدیریت صفحه‌بندی خودش را دارد)
         Paginator::defaultView('vendor.pagination.bazarak');
