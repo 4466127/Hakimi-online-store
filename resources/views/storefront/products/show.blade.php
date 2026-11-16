@@ -57,12 +57,15 @@
             <div class="card p-3" x-data="{ i: 0 }">
                 <div class="relative aspect-square">
                     @forelse ($images as $n => $img)
-                        <img @if ($n > 0) x-show="i === {{ $n }}" x-cloak @endif
-                             @if ($n === 0) x-show="i === 0" @endif
-                             src="{{ $img['url'] }}" srcset="{{ $img['srcset'] }}" sizes="(min-width: 768px) 34rem, 94vw"
-                             width="{{ $img['width'] ?: 600 }}" height="{{ $img['height'] ?: 600 }}" alt="{{ $img['alt'] }}"
-                             @if ($n === 0) fetchpriority="high" @else loading="lazy" @endif
-                             class="absolute inset-0 size-full object-contain">
+                        <picture class="absolute inset-0 size-full" @if ($n > 0) x-show="i === {{ $n }}" x-cloak @endif @if ($n === 0) x-show="i === 0" @endif>
+                            @if ($img['avif'] !== '')
+                                <source type="image/avif" srcset="{{ $img['avif'] }}" sizes="(min-width: 768px) 34rem, 94vw">
+                            @endif
+                            <img src="{{ $img['url'] }}" srcset="{{ $img['srcset'] }}" sizes="(min-width: 768px) 34rem, 94vw"
+                                 width="{{ $img['width'] ?: 600 }}" height="{{ $img['height'] ?: 600 }}" alt="{{ $img['alt'] }}"
+                                 @if ($n === 0) fetchpriority="high" @else loading="lazy" @endif
+                                 class="size-full object-contain">
+                        </picture>
                     @empty
                         <div class="flex size-full items-center justify-center text-gray-300" aria-hidden="true">@svg('heroicon-o-photo', 'size-20')</div>
                     @endforelse

@@ -136,7 +136,7 @@ class ProductForm
                     ->helperText(__('admin.products.new_images_help'))
                     ->multiple()
                     ->image()
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
                     ->maxFiles(ProductImageService::MAX_IMAGES)
                     ->maxSize(10240)
                     ->reorderable()

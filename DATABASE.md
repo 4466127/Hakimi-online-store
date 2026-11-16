@@ -253,7 +253,7 @@ Index: `product_id`، (`is_active`)، `barcode`.
 `id`، `variant_id` FK، `attribute_id` FK، `attribute_option_id` FK. UNIQUE (`variant_id`, `attribute_id`). Index (`attribute_option_id`).
 
 #### `product_images`
-`id`، `uuid`، `product_id` FK، `variant_id` FK NULL، `path` VARCHAR(255) (اصل)، `alt` JSON NULL، `position`، `is_primary` BOOL، `width`، `height`، `sizes` JSON (مسیر WebP ۳۰۰/۶۰۰/۱۲۰۰)، `file_size` INT، timestamps. Index (`product_id`, `position`).
+`id`، `uuid`، `product_id` FK، `variant_id` FK NULL، `path` VARCHAR(255) (اصل)، `alt` JSON NULL، `position`، `is_primary` BOOL، `width`، `height`، `sizes` JSON (مسیر WebP ۳۰۰/۶۰۰/۱۲۰۰)، `avif_sizes` JSON NULL (نسخه‌ی AVIF همان اندازه‌ها؛ خالی اگر سرور AVIF نداشت)، `file_size` INT، timestamps. Index (`product_id`, `position`).
 
 #### `product_relations` — جنس مرتبط / لوازم
 `id`، `product_id` FK، `related_product_id` FK، `kind` VARCHAR(15) (`related` / `accessory`)، `position`. UNIQUE (`product_id`, `related_product_id`).

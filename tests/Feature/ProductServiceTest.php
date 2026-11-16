@@ -336,8 +336,12 @@ class ProductServiceTest extends TestCase
         $this->assertSame([300, 600, 1200], $first->widths());
         $this->assertSame([300, 500], $second->widths());      // عکس کوچک بزرگ نمی‌شود
         foreach ($first->files() as $file) {
-            $this->assertStringEndsWith('.webp', $file);
+            // WebP همیشه؛ AVIF هم اگر سرور بتواند
+            $this->assertTrue(str_ends_with($file, '.webp') || str_ends_with($file, '.avif'), $file);
             Storage::disk('public')->assertExists($file);
+        }
+        foreach ($first->sizes as $file) {
+            $this->assertStringEndsWith('.webp', $file);
         }
         $this->assertStringContainsString('300w', $first->srcset());
         $this->assertSame('عکس دوم', $second->altText('نام جنس'));

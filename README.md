@@ -41,7 +41,7 @@
 | پنل مدیریت | Filament 5 |
 | دیتابیس | MariaDB 10.4 / MySQL 8.4 |
 | فونت | Vazirmatn (از خود سرور) |
-| تست | PHPUnit — ۲۶۹ تست |
+| تست | PHPUnit — ۲۸۰ تست |
 
 دلیل هر انتخاب: [ARCHITECTURE.md](ARCHITECTURE.md) بخش ۳.
 

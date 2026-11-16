@@ -23,13 +23,14 @@ class ProductImage extends Model
 {
     use HasTranslations;
 
-    protected $fillable = ['product_id', 'path', 'alt', 'position', 'is_primary', 'width', 'height', 'sizes', 'file_size'];
+    protected $fillable = ['product_id', 'path', 'alt', 'position', 'is_primary', 'width', 'height', 'sizes', 'avif_sizes', 'file_size'];
 
     protected function casts(): array
     {
         return [
             'alt' => 'array',
             'sizes' => 'array',
+            'avif_sizes' => 'array',
             'is_primary' => 'boolean',
             'position' => 'integer',
             'width' => 'integer',
@@ -79,10 +80,21 @@ class ProductImage extends Model
             ->implode(', ');
     }
 
-    /** مسیر همه‌ی فایل‌های این عکس در دیسک (برای پاک کردن). @return list<string> */
+    /** مقدار srcset نسخه‌ی AVIF؛ خالی اگر AVIF ساخته نشده (آن وقت فقط WebP). */
+    public function avifSrcset(): string
+    {
+        $sizes = $this->avif_sizes ?? [];
+        ksort($sizes, SORT_NUMERIC);
+
+        return collect($sizes)
+            ->map(fn (string $path, int|string $w): string => Storage::disk('public')->url($path).' '.$w.'w')
+            ->implode(', ');
+    }
+
+    /** مسیر همه‌ی فایل‌های این عکس در دیسک، WebP و AVIF (برای پاک کردن). @return list<string> */
     public function files(): array
     {
-        return array_values(array_unique([...array_values($this->sizes ?? []), $this->path]));
+        return array_values(array_unique([...array_values($this->sizes ?? []), ...array_values($this->avif_sizes ?? []), $this->path]));
     }
 
     /** متن توضیح عکس؛ اگر نوشته نشده، $fallback (معمولاً نام جنس). بی بارگذاری رابطه (جلوی N+1). */

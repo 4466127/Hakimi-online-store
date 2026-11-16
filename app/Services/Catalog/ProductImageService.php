@@ -34,7 +34,7 @@ class ProductImageService
         }
 
         try {
-            $stored = $this->images->storeResponsive($sourcePath, 'products/'.$product->uuid);
+            $stored = $this->images->storeResponsive($sourcePath, 'products/'.$product->uuid, withAvif: (bool) config('store.images.avif', true));
         } catch (InvalidArgumentException) {
             throw ValidationException::withMessages(['images' => __('catalog.errors.bad_image')]);
         }
@@ -44,6 +44,7 @@ class ProductImageService
         return $product->images()->create([
             'path' => $stored['path'],
             'sizes' => $stored['sizes'],
+            'avif_sizes' => $stored['avif'] === [] ? null : $stored['avif'],
             'width' => $stored['width'],
             'height' => $stored['height'],
             'file_size' => $stored['file_size'],

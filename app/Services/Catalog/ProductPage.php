@@ -29,7 +29,7 @@ class ProductPage
      *   groups: list<array{id: int, name: string, options: list<array{id: int, value: string, hex: string|null}>}>,
      *   picker: array<string, mixed>,
      *   current: array<string, mixed>|null,
-     *   images: list<array{url: string, thumb: string, srcset: string, alt: string, width: int, height: int}>,
+     *   images: list<array{url: string, thumb: string, srcset: string, avif: string, alt: string, width: int, height: int}>,
      *   jsonLd: array<string, mixed>
      * }
      */
@@ -114,7 +114,7 @@ class ProductPage
         return $groups;
     }
 
-    /** @return list<array{url: string, thumb: string, srcset: string, alt: string, width: int, height: int}> */
+    /** @return list<array{url: string, thumb: string, srcset: string, avif: string, alt: string, width: int, height: int}> */
     private function images(Product $product): array
     {
         $name = $product->tr('name');
@@ -123,6 +123,7 @@ class ProductPage
             'url' => $image->url(600),
             'thumb' => $image->url(300),
             'srcset' => $image->srcset(),
+            'avif' => $image->avifSrcset(),
             'alt' => $image->altText($name),
             'width' => (int) $image->width,
             'height' => (int) $image->height,

@@ -13,10 +13,15 @@
 <a href="{{ $product->url() }}" class="card group relative flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md">
     <div class="relative bg-white">
         @if ($image)
-            <img src="{{ $image->url(300) }}" srcset="{{ $image->srcset() }}"
-                 sizes="(min-width: 1024px) 14rem, (min-width: 640px) 30vw, 46vw"
-                 width="300" height="300" loading="lazy" alt="{{ $image->altText($product->tr('name')) }}"
-                 class="aspect-square w-full object-contain p-2 {{ $inStock ? '' : 'opacity-50' }}">
+            <picture class="block">
+                @if ($image->avifSrcset() !== '')
+                    <source type="image/avif" srcset="{{ $image->avifSrcset() }}" sizes="(min-width: 1024px) 14rem, (min-width: 640px) 30vw, 46vw">
+                @endif
+                <img src="{{ $image->url(300) }}" srcset="{{ $image->srcset() }}"
+                     sizes="(min-width: 1024px) 14rem, (min-width: 640px) 30vw, 46vw"
+                     width="300" height="300" loading="lazy" alt="{{ $image->altText($product->tr('name')) }}"
+                     class="aspect-square w-full object-contain p-2 {{ $inStock ? '' : 'opacity-50' }}">
+            </picture>
         @else
             <div class="flex aspect-square w-full items-center justify-center text-gray-300" aria-hidden="true">
                 @svg('heroicon-o-photo', 'size-12')
