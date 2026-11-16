@@ -19,8 +19,8 @@
 
 - [x] ~~دسته‌ها~~ (بخش ۲ب).
 - [x] **۳-۱** برندها، مشخصه‌ها و گزینه‌ها، مشخصه‌های هر دسته (۲۶ عقرب ۱۴۰۵).
-- [ ] **۳-۲ (قدم بعدی)** migration: `products` (با `seller_id` NULL = جنس خود بازارک، برای کمیسیون)، `product_variants`، `variant_attribute_values`، `product_attribute_values`، `product_images`، `product_relations`، `slug_redirects`. فورم جنس با زبانه‌ها؛ ماتریس نوع‌ها؛ بارگذاری عکس (`ImageStore::storeResponsive`: WebP ۳۰۰/۶۰۰/۱۲۰۰)؛ `PricingService`؛ `search_text` با `Persian::normalize`؛ slug و ریدایرکت.
-- [ ] **۳-۳** صفحه‌های مشتری به الگوی دیجی‌کالا: route با نام‌های `product.show` (`/p/{slug}`)، `search`؛ اجناس در صفحه‌ی دسته‌ی موجود (`/category/{slug}`)؛ کارت جنس؛ فیلتر و مرتب‌سازی؛ گالری و انتخاب نوع با Alpine. صفحه‌ی اصلی واقعی وقتی `store.is_open` روشن است.
+- [x] **۳-۲** جنس، نوع‌ها، عکس‌ها، قیمت‌گذاری، آدرس و ریدایرکت، فورم و لیست پنل (۲۶ عقرب ۱۴۰۵).
+- [ ] **۳-۳ (قدم بعدی)** صفحه‌های مشتری به الگوی دیجی‌کالا: route با نام‌های `product.show` (`/p/{slug}`)، `search`؛ اجناس در صفحه‌ی دسته‌ی موجود (`/category/{slug}`)؛ کارت جنس؛ فیلتر و مرتب‌سازی؛ گالری و انتخاب نوع با Alpine. صفحه‌ی اصلی واقعی وقتی `store.is_open` روشن است.
 - [ ] **۳-۴** `banners`، `home_sections` و منابع پنل؛ cache؛ `sitemap.xml`؛ `robots.txt`؛ JSON-LD.
 - [ ] **۳-۵** تست‌ها؛ `DemoSeeder` و دستور `demo:clear`.
 

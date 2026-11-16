@@ -152,7 +152,7 @@ Index: (`status`, `submitted_at`).
 #### `seller_settlements` — تسویه با فروشنده
 `id`، `uuid`، `seller_id`، `amount`، `method` (`cash`/`hesabpay`/`bank_transfer`)، `reference`، `period_from`/`period_to`، `notes`، `paid_at`، `created_by`، timestamps.
 
-**در مرحله‌ی ۴ اضافه می‌شود:** `products.seller_id` NULL (خالی = جنس خود بازارک)، و روی `order_items`: `seller_id`، `commission_rate`، `commission_amount`، `seller_amount`، `commission_entry_id` (کپی نرخ و مبلغ همان لحظه).
+**`products.seller_id` در مرحله‌ی ۳-۲ ساخته شد** (خالی = جنس خود بازارک). **در مرحله‌ی ۴ اضافه می‌شود:** روی `order_items`: `seller_id`، `commission_rate`، `commission_amount`، `seller_amount`، `commission_entry_id` (کپی نرخ و مبلغ همان لحظه).
 
 ### پ) کاتالوگ
 
@@ -209,7 +209,9 @@ Index: `parent_id`، (`is_active`, `position`).
 | status | VARCHAR(10) | `draft` / `active` / `inactive` |
 | is_featured | BOOL | «پیشنهاد ویژه» |
 | has_variants | BOOL | |
+| seller_id | FK sellers NULL | **خالی = جنس خود بازارک** (کمیسیون ندارد)؛ پر = جنس فروشنده‌ی تأییدشده |
 | min_price, max_price | DECIMAL(12,2) NULL | cache از نوع‌های فعال |
+| min_compare_price | DECIMAL(12,2) NULL | قیمت قبلی ارزان‌ترین نوع (نشان تخفیف روی کارت) |
 | total_stock | DECIMAL(12,3) | cache |
 | search_text | TEXT | نرمال‌شده؛ FULLTEXT |
 | views_count, sold_count | INT | |
@@ -238,7 +240,7 @@ UNIQUE (`product_id`, `attribute_id`, `attribute_option_id`). Index (`attribute_
 | stock_qty | DECIMAL(12,3) | موجودی برای فروش آنلاین |
 | reserved_qty | DECIMAL(12,3) | در سفارش‌های باز |
 | low_stock_threshold | DECIMAL(12,3) NULL | هشدار |
-| allow_backorder, allow_fraction | BOOL | |
+| allow_backorder | BOOL | فروش با موجودی صفر (`allow_fraction` ساخته نشد؛ موجودی DECIMAL است و اگر روزی لازم شد اضافه می‌شود) |
 | weight_grams | INT NULL | برای کرایه‌ی آینده |
 | is_default, is_active | BOOL | |
 | position | INT | |
@@ -400,7 +402,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | ۲ ✓ | `users`، `activity_log`، `settings`، `pages`، `currencies`، `provinces` + جدول‌های لاراول (`sessions`، `cache`، `jobs`، …) |
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
 | ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
-| ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
+| ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products` ✓، `product_attribute_values` ✓، `product_variants` ✓، `variant_attribute_values` ✓، `product_images` ✓، `product_relations` ✓، `slug_redirects` ✓ (۳-۲)، `banners`، `home_sections` |
 | ۴ | `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |
 
