@@ -25,6 +25,9 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# عکس نمونه‌ی اجناس که صاحب پروژه برای درج در سیستم گذاشته؛ به GitHub نمی‌رود (فقط روی لپتاپ)
+/resources/sample-images/
+
 # فایل‌های پنل Filament: با «composer install» خودکار ساخته می‌شود (filament:upgrade)
 /public/css/filament
 /public/js/filament
