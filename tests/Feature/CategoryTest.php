@@ -132,7 +132,9 @@ class CategoryTest extends TestCase
         $this->seed(CategorySeeder::class);
 
         $this->assertSame($count, Category::query()->count());
-        $this->assertSame(['mobile', 'computers', 'shoes', 'clothing'], Category::query()->roots()->orderBy('position')->pluck('slug')->all());
+        $this->assertSame(['mobile', 'computers', 'digital', 'shoes', 'clothing'], array_slice(Category::query()->roots()->orderBy('position')->pluck('slug')->all(), 0, 5));
+        $this->assertSame('3.00', Category::query()->where('slug', 'mobile-phones')->value('commission_rate'));
+        $this->assertFalse(Category::query()->whereIn('slug', ['cars', 'gold', 'tools'])->exists());
         $this->assertSame(2, Category::query()->where('slug', 'chargers')->value('depth'));
     }
 

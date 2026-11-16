@@ -7,6 +7,9 @@ namespace App\Filament\Resources\Sellers;
 use App\Enums\SellerStatus;
 use App\Filament\Resources\Sellers\Pages\ListSellers;
 use App\Filament\Resources\Sellers\Pages\ViewSeller;
+use App\Filament\Resources\Sellers\RelationManagers\CommissionRatesRelationManager;
+use App\Filament\Resources\Sellers\RelationManagers\SettlementsRelationManager;
+use App\Filament\Resources\Sellers\RelationManagers\TransactionsRelationManager;
 use App\Filament\Resources\Sellers\Schemas\SellerInfolist;
 use App\Filament\Resources\Sellers\Tables\SellersTable;
 use App\Models\Seller;
@@ -68,6 +71,15 @@ class SellerResource extends Resource
     public static function table(Table $table): Table
     {
         return SellersTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            CommissionRatesRelationManager::class,
+            TransactionsRelationManager::class,
+            SettlementsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

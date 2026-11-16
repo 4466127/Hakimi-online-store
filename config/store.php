@@ -36,6 +36,15 @@ return [
         'store.address' => null,
         'store.logo' => null,
         'store.is_open' => false,
+
+        // بازارگاه (فروشندگان): از پنل «تنظیمات بازارگاه» عوض می‌شود
+        'marketplace.default_commission_rate' => 7,        // «سایر اجناس» و هر دسته‌ای که نرخ ندارد
+        'marketplace.default_settlement_cycle' => 'monthly',
+        'marketplace.social_free_commission_days' => 90,   // فروشنده‌ی اینستاگرامی: ۳ ماه کمیسیون ۰٪
+        'marketplace.brand_free_pickup_days' => 90,        // صاحب برند: ۳ ماه گرفتن رایگان جنس از دکان
+        'marketplace.brand_settlement_cycle' => 'weekly',  // صاحب برند: تسویه‌ی هفته‌وار
+        'marketplace.local_producer_rate' => 3,            // تولیدکننده‌ی محلی: کمیسیون ۳٪ …
+        'marketplace.local_producer_days' => 90,           // … برای ۳ ماه
     ],
 
     // مشخصات مدیر اول که seeder می‌سازد. رمز در اولین ورود باید عوض شود.

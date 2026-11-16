@@ -6,7 +6,9 @@ namespace App\Filament\Resources\Sellers\Schemas;
 
 use App\Enums\SellerStatus;
 use App\Models\Seller;
+use App\Services\Commission\CommissionService;
 use App\Support\Jalali;
+use App\Support\Num;
 use App\Support\Phone;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -49,6 +51,34 @@ class SellerInfolist
                             ->label(__('admin.sellers.admin_notes'))
                             ->placeholder('—')
                             ->columnSpanFull(),
+                    ]),
+
+                Section::make(__('admin.finance.section'))
+                    ->columns(3)
+                    ->visible(fn (Seller $record): bool => $record->approved_at !== null)
+                    ->schema([
+                        TextEntry::make('balance')
+                            ->label(__('admin.finance.balance'))
+                            ->state(fn (Seller $record): string => Num::format(app(CommissionService::class)->balance($record), 2).' '.__('admin.finance.afn'))
+                            ->weight('bold')
+                            ->size('lg'),
+                        TextEntry::make('total_sales')
+                            ->label(__('admin.finance.total_sales'))
+                            ->state(fn (Seller $record): string => Num::format((string) $record->commissionEntries()->sum('gross_amount'), 2)),
+                        TextEntry::make('total_commission')
+                            ->label(__('admin.finance.total_commission'))
+                            ->state(fn (Seller $record): string => Num::format((string) $record->commissionEntries()->sum('commission_amount'), 2)),
+                        TextEntry::make('settlement_cycle')
+                            ->label(__('admin.finance.settlement_cycle'))
+                            ->formatStateUsing(fn (?string $state): string => (string) __('commission.cycles.'.($state ?? 'monthly'))),
+                        TextEntry::make('free_pickup_until')
+                            ->label(__('admin.finance.free_pickup_until'))
+                            ->formatStateUsing(fn ($state): string => Jalali::date($state))
+                            ->placeholder('—'),
+                        TextEntry::make('approved_at')
+                            ->label(__('admin.finance.approved_at'))
+                            ->formatStateUsing(fn ($state): string => Jalali::dateTime($state))
+                            ->placeholder('—'),
                     ]),
 
                 Section::make(__('admin.sellers.section_identity'))

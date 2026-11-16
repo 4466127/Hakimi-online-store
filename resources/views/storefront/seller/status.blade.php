@@ -56,6 +56,49 @@
             @endif
         </div>
 
+        {{-- حساب و کمیسیون (فروشنده‌ی تأییدشده) --}}
+        @if ($seller->approved_at !== null)
+            @php
+                $commission = app(\App\Services\Commission\CommissionService::class);
+                $overrides = $commission->activeOverrides($seller);
+            @endphp
+            <section class="card mt-6 p-5 md:p-6">
+                <h2 class="font-bold text-gray-900">{{ __('commission.seller_view.heading') }}</h2>
+                <dl class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div class="rounded-xl bg-brand-50 p-4">
+                        <dt class="text-xs text-brand-800">{{ __('commission.seller_view.balance') }}</dt>
+                        <dd class="mt-1 text-xl font-bold text-brand-900">{{ \App\Support\Num::format($commission->balance($seller), 0) }} {{ __('admin.finance.afn') }}</dd>
+                    </div>
+                    <div class="rounded-xl bg-gray-50 p-4">
+                        <dt class="text-xs text-gray-600">{{ __('commission.seller_view.cycle') }}</dt>
+                        <dd class="mt-1 font-bold text-gray-900">{{ __('commission.cycles.'.$seller->settlement_cycle) }}</dd>
+                    </div>
+                </dl>
+                <ul class="mt-4 space-y-2 text-sm text-gray-700">
+                    @foreach ($overrides as $override)
+                        <li class="flex items-center gap-2">
+                            @svg('heroicon-o-sparkles', 'size-5 text-accent-600')
+                            {{ $override->ends_at
+                                ? __('commission.seller_view.special_rate', ['rate' => \App\Support\Num::format((string) $override->rate, 2), 'date' => \App\Support\Jalali::date($override->ends_at)])
+                                : __('commission.seller_view.special_rate_forever', ['rate' => \App\Support\Num::format((string) $override->rate, 2)]) }}
+                            @if ($override->category)
+                                ({{ $override->category->tr('name') }})
+                            @endif
+                        </li>
+                    @endforeach
+                    @if ($seller->hasFreePickup())
+                        <li class="flex items-center gap-2">
+                            @svg('heroicon-o-truck', 'size-5 text-accent-600')
+                            {{ __('commission.seller_view.free_pickup', ['date' => \App\Support\Jalali::date($seller->free_pickup_until)]) }}
+                        </li>
+                    @endif
+                </ul>
+                <a href="{{ route('seller.commissions') }}" class="mt-4 inline-flex min-h-10 items-center gap-1 text-sm font-medium text-brand-700">
+                    {{ __('commission.seller_view.rates_link') }} @svg('heroicon-m-chevron-left', 'size-4')
+                </a>
+            </section>
+        @endif
+
         <section class="card mt-6 p-5 md:p-6">
             <h2 class="font-bold text-gray-900">{{ __('seller.status.summary') }}</h2>
             @include('storefront.seller.partials.summary', ['seller' => $seller, 'editable' => false])

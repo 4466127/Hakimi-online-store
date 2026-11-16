@@ -123,6 +123,37 @@ Index: (`subject_type`, `subject_id`)، (`actor_type`, `actor_id`, `created_at`)
 
 Index: (`status`, `submitted_at`).
 
+### ر) کمیسیون و حساب فروشندگان (۲۶ عقرب ۱۴۰۵)
+
+- `categories.commission_rate` DECIMAL(5,2) NULL — خالی = از بالادست، بعد `marketplace.default_commission_rate`.
+- `sellers` + `approved_at`، `settlement_cycle` (`weekly`/`biweekly`/`monthly`)، `free_pickup_until` DATE، `incentives_applied_at`.
+
+#### `seller_commission_rates` — نرخ ویژه‌ی فروشنده
+`id`، `seller_id` FK، `category_id` FK NULL (خالی = همه)، `rate` DECIMAL(5,2)، `starts_at`/`ends_at` NULL، `reason` (`manual`/`incentive.social`/`incentive.local`)، `note`، `created_by` FK users، timestamps. Index (`seller_id`, `starts_at`, `ends_at`).
+
+#### `commission_entries` — سند مالی هر فروش یا برگشت (ویرایش/حذف ندارد)
+| ستون | نوع | توضیح |
+|---|---|---|
+| id, uuid | | |
+| idempotency_key | VARCHAR(120) UNIQUE | `order_item:15:sale`، `order_return:7:reversal` — هیچ فروشی دو بار ثبت نمی‌شود |
+| seller_id | FK NULL | خالی = فروش خود بازارک |
+| kind | VARCHAR(10) | `sale` / `reversal` |
+| source_type, source_id | | `order_item` / `order_return` / `manual` |
+| category_id | FK NULL | |
+| gross_amount | DECIMAL(12,2) | مبلغ جنس **بی کرایه** (برگشت منفی) |
+| commission_rate, rate_source | DECIMAL(5,2), VARCHAR(15) | نرخ همان لحظه و منبعش (`seller`/`category`/`default`/`platform`) |
+| commission_amount, seller_amount | DECIMAL(12,2) | سهم بازارک، سهم فروشنده |
+| reverses_id | FK self NULL | سند فروشی که برگشت داده شد |
+| occurred_at, created_by, created_at | | |
+
+#### `seller_transactions` — دفتر حساب فروشنده (ویرایش/حذف ندارد)
+`id`، `seller_id`، `type` (`earning`/`reversal`/`payout`/`adjustment`)، `amount` (مثبت = طلب فروشنده زیاد شد)، `balance_after`، `commission_entry_id` UNIQUE NULL، `settlement_id` UNIQUE NULL، `description`، `created_by`، `created_at`.
+
+#### `seller_settlements` — تسویه با فروشنده
+`id`، `uuid`، `seller_id`، `amount`، `method` (`cash`/`hesabpay`/`bank_transfer`)، `reference`، `period_from`/`period_to`، `notes`، `paid_at`، `created_by`، timestamps.
+
+**در مرحله‌ی ۴ اضافه می‌شود:** `products.seller_id` NULL (خالی = جنس خود بازارک)، و روی `order_items`: `seller_id`، `commission_rate`، `commission_amount`، `seller_amount`، `commission_entry_id` (کپی نرخ و مبلغ همان لحظه).
+
 ### پ) کاتالوگ
 
 #### `categories`
@@ -368,6 +399,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 |---|---|
 | ۲ ✓ | `users`، `activity_log`، `settings`، `pages`، `currencies`، `provinces` + جدول‌های لاراول (`sessions`، `cache`، `jobs`، …) |
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
+| ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
 | ۳ | `brands`، `attributes`، `attribute_options`، `category_attribute`، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
 | ۴ | `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |

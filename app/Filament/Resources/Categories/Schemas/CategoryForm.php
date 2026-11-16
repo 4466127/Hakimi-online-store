@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Categories\Schemas;
 
 use App\Models\Category;
+use App\Services\Commission\CommissionService;
 use App\Services\ImageStore;
 use App\Support\Persian;
 use Filament\Forms\Components\FileUpload;
@@ -90,6 +91,17 @@ class CategoryForm
                             ->label(__('admin.categories.show_in_menu'))
                             ->helperText(__('admin.categories.show_in_menu_help'))
                             ->default(true),
+                        TextInput::make('commission_rate')
+                            ->label(__('admin.categories.commission_rate'))
+                            ->helperText(__('admin.categories.commission_rate_help'))
+                            ->placeholder(fn (?Category $record): string => $record?->parent_id
+                                ? app(CommissionService::class)->categoryRate(Category::withTrashed()->find($record->parent_id))->rate.'٪ ('.__('admin.categories.commission_inherited').')'
+                                : app(CommissionService::class)->defaultRate().'٪ ('.__('admin.categories.commission_default').')')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(50)
+                            ->step('0.01')
+                            ->suffix('٪'),
                         TextInput::make('position')
                             ->label(__('admin.categories.position'))
                             ->helperText(__('admin.categories.position_help'))
@@ -119,10 +131,11 @@ class CategoryForm
     /**
      * دسته‌هایی که این دسته می‌تواند زیرشان برود: نه خودش، نه زیردسته‌هایش، و طوری که
      * درخت از سه سطح عمیق‌تر نشود. نام با مسیر: «موبایل › لوازم جانبی».
+     * با $allLevels همه‌ی دسته‌ها (برای انتخاب دسته در جاهای دیگر، مثل نرخ ویژه‌ی فروشنده).
      *
      * @return array<int, string>
      */
-    public static function parentOptions(?Category $record): array
+    public static function parentOptions(?Category $record, bool $allLevels = false): array
     {
         $all = Category::query()->orderBy('depth')->orderBy('position')->orderBy('id')->get()->keyBy('id');
 
@@ -138,7 +151,7 @@ class CategoryForm
 
         $rows = [];
         foreach ($all as $category) {
-            if (in_array($category->id, $excluded, true) || $category->depth + 1 + $subtreeHeight > Category::MAX_DEPTH) {
+            if (! $allLevels && (in_array($category->id, $excluded, true) || $category->depth + 1 + $subtreeHeight > Category::MAX_DEPTH)) {
                 continue;
             }
             $chain = array_filter(array_map(fn (int $id) => $all->get($id), [...$category->ancestorIds(), $category->id]));

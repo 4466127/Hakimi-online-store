@@ -225,6 +225,10 @@
                                 @endforeach
                             </ol>
 
+                            <a href="{{ route('seller.commissions') }}" target="_blank" class="mt-4 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-brand-700">
+                                @svg('heroicon-o-receipt-percent', 'size-5') {{ __('commission.public.link') }}
+                            </a>
+
                             <label class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
                                 <input type="checkbox" name="terms" value="1" class="form-check mt-0.5" required @checked(old('terms', $seller->terms_accepted_at !== null))>
                                 <span class="text-sm font-bold text-gray-900">{{ __('seller.onboarding.rules.accept') }}</span>

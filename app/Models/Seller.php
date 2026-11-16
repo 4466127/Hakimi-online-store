@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -66,6 +67,9 @@ class Seller extends Model
             'terms_accepted_at' => 'datetime',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'free_pickup_until' => 'date',
+            'incentives_applied_at' => 'datetime',
         ];
     }
 
@@ -108,6 +112,35 @@ class Seller extends Model
     public function province(): BelongsTo
     {
         return $this->belongsTo(Province::class);
+    }
+
+    /** نرخ‌های کمیسیون ویژه‌ی این فروشنده. */
+    public function commissionRates(): HasMany
+    {
+        return $this->hasMany(SellerCommissionRate::class)->latest('id');
+    }
+
+    /** اسناد کمیسیون فروش‌های این فروشنده. */
+    public function commissionEntries(): HasMany
+    {
+        return $this->hasMany(CommissionEntry::class)->latest('id');
+    }
+
+    /** دفتر حساب: طلب، برگشت، تسویه، اصلاح. */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(SellerTransaction::class)->latest('id');
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(SellerSettlement::class)->latest('paid_at');
+    }
+
+    /** گرفتن جنس از دکان فروشنده هنوز رایگان است؟ (مزیت برند) */
+    public function hasFreePickup(): bool
+    {
+        return $this->free_pickup_until !== null && $this->free_pickup_until->endOfDay()->isFuture();
     }
 
     public function reviewer(): BelongsTo

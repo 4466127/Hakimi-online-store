@@ -4,8 +4,8 @@
 > آخرین به‌روزرسانی: ۲۵ عقرب ۱۴۰۵ (۲۰۲۶-۱۱-۱۶)
 
 ## وضعیت حالا
-- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. **بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓ ساخته شد؛ منتظر امتحان صاحب پروژه.**
-- `php artisan test` → ۱۴۶ تست سبز. `vendor\bin\pint` → مرتب.
+- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓. **بخش ۲ج (دسته‌های بیشتر، کمیسیون، حساب و تسویه‌ی فروشندگان، مزایا، راهنمای AWS) ✓ ساخته شد؛ منتظر امتحان صاحب پروژه.**
+- `php artisan test` → ۱۶۵ تست سبز. `vendor\bin\pint` → مرتب.
 - کد در GitHub: `https://github.com/4466127/Hakimi-online-store.git` (شاخه‌ی `main`).
 
 ## تصمیم‌های صاحب پروژه (۲۵ عقرب ۱۴۰۵)
@@ -18,6 +18,9 @@
 7. **«در بازارک بفروشید»:** دیگران هم مثل دیجی‌کالا بفروشند. فعلاً فقط ثبت‌نام و بررسی فروشنده؛ به‌جای کد ملی **نمبر تذکره**. پنل فروشنده، کمیسیون و تسویه منتظر تصمیم صاحب پروژه.
 8. **منوی دسته‌بندی کالاها** مثل دیجی‌کالا (سه سطح).
 9. **عکس‌ها WebP** و کوچک (مثل دیجی‌کالا) برای انترنت ضعیف.
+10. **کمیسیون (۲۶ عقرب):** موبایل ۳٪، لپتاپ و کمپیوتر ۴٪، لوازم جانبی ۶٪، کفش/لباس/کیف/سایر ۷٪؛ فقط روی فروش تحویل‌شده؛ ثبت‌نام، گذاشتن جنس و ماهانه رایگان؛ برگشت = برگشت کمیسیون؛ کرایه بیرون.
+11. **تحویل:** اول خود صاحب پروژه؛ بعداً شرکت پیک؛ کرایه جدا از مشتری.
+12. **میزبانی: AWS** (پیشنهاد Lightsail، `docs/aws-hosting.md`).
 
 ## آنچه در مرحله‌ی ۲ ساخته شد
 | بخش | کجا |
@@ -59,6 +62,23 @@
 | فروشندگان | `app/Models/Seller.php`، `app/Enums/Seller{Status,Type}.php`، `app/Services/SellerOnboarding.php`، `SellerController`، `SellerOnboardingController`، `app/Http/Requests/Storefront/Seller*Request.php`، `resources/views/storefront/seller/*`، `app/Filament/Resources/Sellers/*` |
 | خانه‌های فورم فروشگاه | `resources/views/components/storefront/{field,form-errors,flash}.blade.php`؛ کلاس‌های `.form-*` و `.alert-*` در `app.css` |
 | متن‌ها | `lang/fa/customer.php`، `lang/fa/seller.php`، بخش‌های تازه در `store.php` و `admin.php` |
+
+## آنچه در بخش ۲ج ساخته شد
+| بخش | کجا |
+|---|---|
+| موتور کمیسیون | `app/Services/Commission/{CommissionService,SaleLine,AppliedRate,SellerIncentives}.php` |
+| جدول‌ها | `database/migrations/2026_11_17_000100_create_commission_tables.php` (نرخ‌های پیش‌فرض روی دسته‌های موجود هم همین‌جا) |
+| مدل‌ها | `CommissionEntry`، `SellerTransaction` (هر دو تغییرناپذیر)، `SellerSettlement`، `SellerCommissionRate` |
+| پنل | `Filament/Pages/ManageMarketplaceSettings.php`، `Resources/CommissionEntries/*`، `Resources/Settlements/*`، `Resources/Sellers/RelationManagers/*`، دکمه‌های تسویه و اصلاح در `ViewSeller`، `Widgets/MarketplaceFinanceStats.php` |
+| سایت | `storefront/seller/commissions.blade.php`، بخش‌های تازه در `landing` و `status` |
+| متن‌ها | `lang/fa/commission.php`، بخش‌های `marketplace_settings` و `finance` در `admin.php` |
+| تست | `tests/Feature/CommissionTest.php` |
+
+## نکته‌های فنی بخش ۲ج
+- **مرحله‌ی ۴ باید:** هنگام «تحویل شد» برای هر ردیف سفارش `CommissionService::recordSale(new SaleLine('order_item', $item->id, $seller, $category, $itemsAmount))` را صدا بزند (کرایه را نفرستد) و نرخ/مبلغ برگشتی را روی `order_items` کپی کند؛ هنگام مرجوعی `recordReversal($entry, 'order_return:'.$return->id, $amount)`. لغو هیچ کاری ندارد.
+- `Settings::get($key, $default)`: اگر `$default` بدهید، پیش‌فرض `config/store.php` نادیده گرفته می‌شود. برای کلیدهای `marketplace.*` بی پیش‌فرض صدا بزنید.
+- اگر صفحه‌ای بعد از تغییر Blade کهنه نشان داده شد: `php artisan view:clear` (یک بار پیش آمد).
+- انتخاب تاریخ در پنل هنوز میلادی است (Filament تقویم شمسی ندارد)؛ نمایش همه‌جا شمسی است.
 
 ## نکته‌های فنی بخش ۲ب
 - ورود مشتری با `auth('customer')`؛ `auth()` بی نام همان کاربر پنل است. `redirectGuestsTo` ← `/login` و `redirectUsersTo` ← `/account` در `bootstrap/app.php` (پنل Filament ورود خودش را دارد).

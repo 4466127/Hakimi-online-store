@@ -50,6 +50,38 @@
         </ul>
     </section>
 
+    {{-- مزایای شروع (از «تنظیمات بازارگاه»؛ فقط آن‌هایی که روشن است) --}}
+    @if (count($incentives) > 0)
+        <section class="container-page mt-10">
+            <h2 class="mb-4 text-lg font-bold text-gray-900">{{ __('commission.incentives.heading') }}</h2>
+            <ul class="grid gap-3 md:grid-cols-3">
+                @foreach ($incentives as $incentive)
+                    <li class="card border-accent-200 bg-accent-50 p-4">
+                        @svg(['social' => 'heroicon-o-camera', 'local' => 'heroicon-o-gift', 'brand' => 'heroicon-o-star'][$incentive['key']] ?? 'heroicon-o-sparkles', 'size-7 text-accent-700')
+                        <h3 class="mt-2 text-sm font-bold text-gray-900">{{ $incentive['title'] }}</h3>
+                        <p class="mt-1 text-xs leading-6 text-gray-700">{{ $incentive['text'] }}</p>
+                    </li>
+                @endforeach
+            </ul>
+            <p class="mt-2 text-xs text-gray-500">{{ __('commission.incentives.note') }}</p>
+        </section>
+    @endif
+
+    {{-- کمیسیون --}}
+    <section class="container-page mt-10">
+        <a href="{{ route('seller.commissions') }}" class="card flex items-center gap-4 p-5 hover:shadow-md">
+            <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                @svg('heroicon-o-receipt-percent', 'size-7')
+            </span>
+            <span class="flex-1">
+                <span class="block font-bold text-gray-900">{{ __('commission.public.heading') }}</span>
+                <span class="mt-1 block text-sm leading-7 text-gray-600">{{ __('commission.public.rules.0') }} {{ __('commission.public.rules.2') }}</span>
+            </span>
+            <span class="hidden text-sm font-medium text-brand-700 sm:inline">{{ __('commission.public.link') }}</span>
+            @svg('heroicon-m-chevron-left', 'size-5 text-brand-700')
+        </a>
+    </section>
+
     {{-- قدم‌ها --}}
     <section class="container-page mt-10">
         <h2 class="mb-4 text-lg font-bold text-gray-900">{{ __('seller.landing.steps_heading') }}</h2>

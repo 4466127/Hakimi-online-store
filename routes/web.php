@@ -58,3 +58,4 @@ Route::middleware('auth:customer')->group(function () {
 
 // معرفی «در بازارک بفروشید» (برای همه)
 Route::get('/sell', [SellerController::class, 'landing'])->name('seller.landing');
+Route::get('/sell/commissions', [SellerController::class, 'commissions'])->name('seller.commissions');

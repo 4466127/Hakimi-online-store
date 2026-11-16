@@ -37,6 +37,7 @@ use LogicException;
  * @property bool $is_active
  * @property bool $show_in_menu
  * @property string|null $icon
+ * @property string|null $commission_rate خالی = از دسته‌ی بالادست، بعد پیش‌فرض تنظیمات
  */
 class Category extends Model
 {
@@ -58,7 +59,7 @@ class Category extends Model
     ];
 
     protected $fillable = [
-        'parent_id', 'slug', 'name', 'description', 'image_path', 'icon', 'position',
+        'parent_id', 'slug', 'name', 'description', 'image_path', 'icon', 'commission_rate', 'position',
         'is_active', 'show_in_menu', 'meta_title', 'meta_description',
     ];
 
@@ -75,6 +76,7 @@ class Category extends Model
             'depth' => 'integer',
             'parent_id' => 'integer',
             'products_count' => 'integer',
+            'commission_rate' => 'decimal:2',
         ];
     }
 

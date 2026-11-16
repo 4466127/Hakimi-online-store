@@ -8,6 +8,7 @@ use App\Enums\SellerStatus;
 use App\Models\Customer;
 use App\Models\Seller;
 use App\Models\User;
+use App\Services\Commission\SellerIncentives;
 use LogicException;
 
 /**
@@ -18,7 +19,10 @@ use LogicException;
  */
 class SellerOnboarding
 {
-    public function __construct(private readonly ActivityLogger $logger) {}
+    public function __construct(
+        private readonly ActivityLogger $logger,
+        private readonly SellerIncentives $incentives,
+    ) {}
 
     /** فروشنده‌ی این مشتری؛ اگر نبود، یک پیش‌نویس تازه ساخته می‌شود. */
     public function forCustomer(Customer $customer): Seller
@@ -118,6 +122,8 @@ class SellerOnboarding
     public function approve(Seller $seller, User $reviewer): void
     {
         $this->review($seller, $reviewer, SellerStatus::Approved, null, 'seller.approved');
+        // مزایای شروع (کمیسیون ۰٪ اینستاگرامی، گرفتن رایگان جنس برای برند، …) فقط بار اول
+        $this->incentives->applyOnFirstApproval($seller, $reviewer);
     }
 
     public function reject(Seller $seller, User $reviewer, string $reason): void

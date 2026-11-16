@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Categories\Tables;
 
 use App\Models\Category;
+use App\Services\Commission\CommissionService;
+use App\Support\Num;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -39,6 +41,19 @@ class CategoriesTable
                     ->formatStateUsing(fn (int $state): string => (string) (__('admin.categories.levels')[$state] ?? $state))
                     ->badge()
                     ->color(fn (int $state): string => ['primary', 'warning', 'gray'][$state] ?? 'gray'),
+                TextColumn::make('commission')
+                    ->label(__('admin.categories.commission'))
+                    ->state(function (Category $record): string {
+                        $rate = once(fn (): array => app(CommissionService::class)->allCategoryRates())[$record->id] ?? null;
+                        if ($rate === null) {
+                            return '—';
+                        }
+                        $label = Num::format($rate->rate, 2).'٪';
+
+                        return $rate->categoryId === $record->id ? $label : $label.' ('.__($rate->source === 'default' ? 'admin.categories.commission_default' : 'admin.categories.commission_inherited').')';
+                    })
+                    ->color(fn (Category $record): ?string => $record->commission_rate === null ? 'gray' : null)
+                    ->alignCenter(),
                 TextColumn::make('children_count')
                     ->label(__('admin.categories.children_count'))
                     ->alignCenter()
