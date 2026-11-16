@@ -9,6 +9,7 @@ use App\Filament\Auth\Login;
 use App\Filament\Support\LocalAvatarProvider;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Services\Settings;
+use App\Services\StoreInfo;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -42,8 +43,14 @@ class AdminPanelProvider extends PanelProvider
             ->login(Login::class)
             ->profile(EditProfile::class, isSimple: false)
             ->brandName(fn (): string => (string) app(Settings::class)->get('store.name'))
+            // لوگوی بازارک (WebP)؛ اگر مدیر لوگوی دیگری گذاشته باشد همان
+            ->brandLogo(fn (): string => app(StoreInfo::class)->logoUrl())
+            ->darkModeBrandLogo(fn (): string => app(StoreInfo::class)->logoDarkUrl())
+            ->brandLogoHeight('2.5rem')
+            ->favicon('/favicon.png')
+            // فیروزه‌ای کیف لوگوی بازارک
             ->colors([
-                'primary' => Color::Emerald,
+                'primary' => Color::hex('#0e8c8c'),
             ])
             ->font('Vazirmatn', url: '/fonts/vazirmatn/vazirmatn.css', provider: LocalFontProvider::class)
             ->defaultAvatarProvider(LocalAvatarProvider::class)
@@ -51,6 +58,8 @@ class AdminPanelProvider extends PanelProvider
             ->unsavedChangesAlerts()
             ->databaseTransactions()
             ->navigationGroups([
+                NavigationGroup::make(fn (): string => (string) __('admin.nav.catalog')),
+                NavigationGroup::make(fn (): string => (string) __('admin.nav.marketplace')),
                 NavigationGroup::make(fn (): string => (string) __('admin.nav.content')),
                 NavigationGroup::make(fn (): string => (string) __('admin.nav.system')),
             ])

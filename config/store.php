@@ -28,8 +28,8 @@ return [
 
     // مقدار اولیه‌ی تنظیمات فروشگاه (وقتی هنوز چیزی در پنل ذخیره نشده).
     'defaults' => [
-        'store.name' => 'فروشگاه برادران حکیمی',
-        'store.tagline' => 'خرید آسان، تحویل به سراسر افغانستان',
+        'store.name' => 'بازارک',
+        'store.tagline' => 'بازار آنلاین افغانستان — خرید آسان، تحویل درِ خانه',
         'store.phone' => null,
         'store.whatsapp' => null,
         'store.email' => null,

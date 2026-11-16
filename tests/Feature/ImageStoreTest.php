@@ -84,4 +84,31 @@ class ImageStoreTest extends TestCase
 
         Storage::disk('public')->assertMissing($path);
     }
+
+    public function test_responsive_image_gets_small_medium_and_large_webp_versions(): void
+    {
+        $image = imagecreatetruecolor(1600, 1200);
+        imagejpeg($image, $this->tmp);
+
+        $result = app(ImageStore::class)->storeResponsive($this->tmp, 'products');
+
+        $this->assertSame([300, 600, 1200], array_keys($result['sizes']));
+        foreach ($result['sizes'] as $width => $path) {
+            $this->assertStringEndsWith('-'.$width.'.webp', $path);
+            $info = getimagesizefromstring(Storage::disk('public')->get($path));
+            $this->assertSame([IMAGETYPE_WEBP, $width], [$info[2], $info[0]]);
+        }
+        $this->assertSame([1600, 1200], [$result['width'], $result['height']]);
+        $this->assertSame($result['sizes'][1200], $result['path']);
+    }
+
+    public function test_responsive_small_image_is_not_enlarged(): void
+    {
+        $image = imagecreatetruecolor(500, 500);
+        imagepng($image, $this->tmp);
+
+        $result = app(ImageStore::class)->storeResponsive($this->tmp, 'products');
+
+        $this->assertSame([300, 500], array_keys($result['sizes']));
+    }
 }

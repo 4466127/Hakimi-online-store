@@ -10,7 +10,7 @@
     $fullTitle = $pageTitle !== '' ? $pageTitle.' | '.$store->name() : $store->name();
     $description = trim($__env->yieldContent('description')) ?: ($store->tagline() ?? $store->name());
     $canonical = trim($__env->yieldContent('canonical')) ?: url()->current();
-    $ogImage = trim($__env->yieldContent('ogImage')) ?: $store->logoUrl();
+    $ogImage = trim($__env->yieldContent('ogImage')) ?: $store->iconUrl();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" dir="{{ $dir }}">
@@ -18,7 +18,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#047857">
+    <meta name="theme-color" content="#16324f">
 
     <title>{{ $fullTitle }}</title>
     <meta name="description" content="{{ $description }}">
@@ -35,7 +35,9 @@
         <meta property="og:image" content="{{ url($ogImage) }}">
     @endif
 
-    <link rel="icon" href="{{ $store->logoUrl() ?? asset('favicon.svg') }}">
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preload" href="/fonts/vazirmatn/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])

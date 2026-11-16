@@ -44,12 +44,37 @@ class StoreInfo
         return $this->settings->get('store.address');
     }
 
-    /** آدرس عکس لوگو، یا null اگر لوگو گذاشته نشده. */
-    public function logoUrl(): ?string
+    /** لوگوی پیش‌فرض بازارک (WebP، در public/images/brand). */
+    public const DEFAULT_LOGO = '/images/brand/bazarak-logo.webp';
+
+    public const DEFAULT_LOGO_DARK = '/images/brand/bazarak-logo-dark.webp';
+
+    public const DEFAULT_ICON = '/images/brand/bazarak-icon.webp';
+
+    /** آدرس لوگویی که مدیر در تنظیمات گذاشته، یا null. */
+    public function uploadedLogoUrl(): ?string
     {
         $path = $this->settings->get('store.logo');
 
         return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
+    }
+
+    /** لوگوی سایت: اگر مدیر لوگوی دیگری گذاشته همان، وگرنه لوگوی بازارک. */
+    public function logoUrl(): string
+    {
+        return $this->uploadedLogoUrl() ?? self::DEFAULT_LOGO;
+    }
+
+    /** لوگو برای زمینه‌ی تیره (پاورقی، حالت تیره‌ی پنل). */
+    public function logoDarkUrl(): string
+    {
+        return $this->uploadedLogoUrl() ?? self::DEFAULT_LOGO_DARK;
+    }
+
+    /** آیکون مربعی (کیف بازارک) برای پیش‌نمایش لینک و جاهای کوچک. */
+    public function iconUrl(): string
+    {
+        return self::DEFAULT_ICON;
     }
 
     /** شماره‌ی تماس با ارقام فارسی: ۰۷۰۰ ۱۲۳ ۴۵۶ */

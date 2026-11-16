@@ -1,6 +1,7 @@
-# طرح دیتابیس فروشگاه آنلاین «برادران حکیمی»
+# طرح دیتابیس «بازارک» (Bazarak) — فروشگاه آنلاین برادران حکیمی
 
-> نسخه‌ی ۰٫۲ — ۲۵ عقرب ۱۴۰۵ — **تأییدشده؛ جدول‌های مرحله‌ی ۲ ساخته شد.** همراه `ARCHITECTURE.md`.
+> نسخه‌ی ۰٫۳ — ۲۵ عقرب ۱۴۰۵ — **تأییدشده؛ جدول‌های مرحله‌ی ۲ و بخش ۲ب (`customers`، `categories`، `sellers`) ساخته شد.** همراه `ARCHITECTURE.md`.
+> تغییر نسبت به ۰٫۲: جدول تازه‌ی **`sellers`** (فروشندگان «در بازارک بفروشید»، بخش ۳-د)؛ `customers` و `categories` جلوتر از برنامه ساخته شد (منوی دسته‌ها و ورود فروشنده به آن‌ها نیاز داشت).
 > تغییر نسبت به نسخه‌ی ۰٫۱ (تصمیم صاحب پروژه): **هیچ ستون `erp_*` و هیچ جدول همگام‌سازی نداریم** (فروشگاه مستقل است)؛ ستون‌های تازه: `users.password_changed_at`، `activity_log.subject_label`، `provinces.delivery_enabled`.
 > دیتابیس: `hakimi_store` (کار) و `hakimi_store_test` (تست). **کاملاً جدا از دیتابیس `hakimi` دکان**؛ هیچ جدول مشترکی نیست.
 
@@ -93,6 +94,34 @@ Index: (`subject_type`, `subject_id`)، (`actor_type`, `actor_id`, `created_at`)
 
 #### `customer_otps` — کد یک‌بارمصرف (مرحله‌ی بعد؛ جدول در مرحله‌ی ۵ ساخته می‌شود)
 `id`، `phone`، `code_hash`، `purpose` VARCHAR(10) (`login`/`verify`/`reset`)، `expires_at`، `attempts` TINYINT، `created_at`. Index (`phone`, `purpose`).
+
+### د) فروشندگان («در بازارک بفروشید»)
+
+#### `sellers` — یک ردیف برای هر مشتری‌ای که فورم فروشنده را شروع کرده
+| ستون | نوع | توضیح |
+|---|---|---|
+| id, uuid | | |
+| customer_id | FK customers UNIQUE | حساب ورود فروشنده (حذف مشتری ← حذف فروشنده) |
+| status | VARCHAR(15) | `draft` / `pending` / `approved` / `rejected` / `suspended` |
+| onboarding_step | TINYINT | دورترین قدمی که باز است (۱ تا ۴) |
+| type | VARCHAR(15) NULL | `individual` (شخص) / `business` (دکان یا شرکت) |
+| full_name, father_name | VARCHAR(100) NULL | مطابق تذکره |
+| tazkira_number | VARCHAR(30) NULL UNIQUE | به‌جای کد ملی؛ بی فاصله و با ارقام انگلیسی ذخیره می‌شود (`1400-0101-12345`) |
+| store_name | VARCHAR(100) NULL UNIQUE | نامی که مشتریان می‌بینند |
+| business_name, license_number | VARCHAR(150), VARCHAR(50) NULL | فقط برای `business` (نمبر جواز تجارتی) |
+| is_local_producer, is_social_seller, has_brand | BOOL | نشان‌های اختیاری |
+| social_url, brand_name | NULL | اگر نشانش روشن است |
+| category_ids | JSON NULL | دسته‌های اصلی که می‌خواهد بفروشد |
+| province_id | FK provinces NULL | |
+| city, address, phone | NULL | آدرس دکان؛ تلفن دکان اگر با شماره‌ی حساب فرق دارد |
+| terms_accepted_at, submitted_at | DATETIME NULL | |
+| reviewed_by | FK users NULL | مدیری که تأیید/رد کرد |
+| reviewed_at | DATETIME NULL | |
+| review_note | TEXT NULL | دلیل رد یا بستن — **به فروشنده نشان داده می‌شود** |
+| admin_notes | TEXT NULL | یادداشت داخلی مدیر |
+| timestamps | | |
+
+Index: (`status`, `submitted_at`).
 
 ### پ) کاتالوگ
 
@@ -326,19 +355,21 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 `id`، `channel` VARCHAR(10) (`sms`/`email`/`whatsapp`)، `recipient` VARCHAR(150)، `template` VARCHAR(50)، `message` TEXT، `status` VARCHAR(10) (`queued`/`sent`/`failed`/`logged`)، `provider` VARCHAR(30) NULL، `provider_ref` NULL، `error` NULL، `order_id` FK NULL، `customer_id` FK NULL، `sent_at` NULL، `created_at`.
 
 ### ذ) جدول‌های آینده (حالا ساخته نمی‌شوند)
-`reviews` (نظر و امتیاز)، `wishlists`، `return_requests` (درخواست مرجوعی مشتری)، `shipments` (مرسوله، دریور، موتر)، `vendors` + ستون `vendor_id` روی `products`/`orders` (بازارگاه)، `product_slugs` چندزبانه.
+`reviews` (نظر و امتیاز)، `wishlists`، `return_requests` (درخواست مرجوعی مشتری)، `shipments` (مرسوله، دریور، موتر)، ستون `seller_id` روی `products`/`order_items` و جدول‌های کمیسیون و تسویه‌ی فروشنده (پنل فروشنده؛ بعد از تصمیم صاحب پروژه)، `product_slugs` چندزبانه.
 
 ## ۴. داده‌ی اولیه (seeders)
 - **همیشه (production هم):** ۳۴ ولایت (تحویل فعال فقط کابل و غزنی)؛ پول‌ها (AFN، USD غیرفعال)؛ روش‌های پرداخت (`cod` فعال؛ `hesabpay` غیرفعال تا حساب پذیرنده و کلید داده شود؛ `bank_transfer` غیرفعال)؛ تنظیمات پایه؛ کاربر `owner` با رمز اولیه که در اولین ورود عوض می‌شود؛ صفحه‌های ثابت خالی (درباره‌ی ما، تماس، شرایط، مرجوعی، حریم خصوصی)؛ منطقه‌ی تحویل «بقیه‌ی کشور» غیرفعال.
-- **پیشنهادی (یک بار؛ قابل تغییر از پنل):** مشخصه‌ها و گزینه‌های چهار گروه (سایز کفش ۳۶ تا ۴۶، سایز لباس S تا XXL، رنگ‌ها، حافظه، RAM، وضعیت نو/کارکرده…) و دسته‌های اصلی: کفش و بوت، لباس افغانی، موبایل و لوازم، لپتاپ و کمپیوتر، با زیردسته‌های رایج.
+- **دسته‌ها (`CategorySeeder`، ساخته شد):** ۴ دسته‌ی اصلی (موبایل و لوازم، لپتاپ و کمپیوتر، بوت و کفش، لباس افغانی و مُد)، ۱۰ گروه و زیردسته‌های رایج. فقط دسته‌ای که آدرسش نیست ساخته می‌شود؛ تغییرهای مدیر دست نمی‌خورد.
+- **پیشنهادی (مرحله‌ی ۳):** مشخصه‌ها و گزینه‌های چهار گروه (سایز کفش ۳۶ تا ۴۶، سایز لباس S تا XXL، رنگ‌ها، حافظه، RAM، وضعیت نو/کارکرده…).
 - **نمایشی (فقط `local`):** `DemoSeeder` با ۲۰ جنس نمونه و عکس جایگزین، چند مشتری و سفارش؛ دستور `demo:clear` برای پاک کردن.
 
 ## ۵. ترتیب migration به مرحله
 | مرحله | جدول‌ها |
 |---|---|
 | ۲ ✓ | `users`، `activity_log`، `settings`، `pages`، `currencies`، `provinces` + جدول‌های لاراول (`sessions`، `cache`، `jobs`، …) |
-| ۳ | `categories`، `brands`، `attributes`، `attribute_options`، `category_attribute`، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
-| ۴ | `customers`، `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
+| ۲ب ✓ | `customers`، `categories`، `sellers` |
+| ۳ | `brands`، `attributes`، `attribute_options`، `category_attribute`، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
+| ۴ | `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |
 
 مرحله‌ی ۶ جدول تازه ندارد (سرور، امنیت، SEO).

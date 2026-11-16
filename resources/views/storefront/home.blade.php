@@ -10,7 +10,7 @@
 @section('content')
     @php
         $deliveryText = $store->deliveryProvincesText();
-        $tileColors = ['bg-emerald-50 text-emerald-800', 'bg-orange-50 text-orange-800', 'bg-sky-50 text-sky-800', 'bg-violet-50 text-violet-800'];
+        $tileColors = ['bg-brand-50 text-brand-800', 'bg-accent-50 text-accent-800', 'bg-sky-50 text-sky-800', 'bg-violet-50 text-violet-800'];
         $trust = [
             ['icon' => 'heroicon-o-banknotes', 'key' => 'cod'],
             ['icon' => 'heroicon-o-credit-card', 'key' => 'online'],
@@ -55,20 +55,45 @@
         </div>
     </section>
 
-    {{-- دسته‌های اصلی --}}
+    {{-- دسته‌های اصلی (از پنل مدیریت) --}}
+    @if (count($categories) > 0)
+        <section class="container-page mt-8">
+            <h2 class="mb-4 text-lg font-bold text-gray-900">{{ __('store.home.categories_heading') }}</h2>
+            <ul class="grid grid-cols-2 gap-3 md:grid-cols-4">
+                @foreach ($categories as $category)
+                    <li>
+                        <a href="{{ route('category.show', ['slug' => $category['slug']]) }}" class="card block h-full p-4 transition-shadow hover:shadow-md">
+                            <span class="mb-3 flex size-11 items-center justify-center rounded-xl {{ $tileColors[$loop->index % count($tileColors)] }}">
+                                @svg($category['icon'] ?? 'heroicon-o-shopping-bag', 'size-6')
+                            </span>
+                            <h3 class="font-bold text-gray-900">{{ $category['name'] }}</h3>
+                            @if (count($category['children']) > 0)
+                                <p class="mt-1 line-clamp-2 text-xs leading-6 text-gray-500">
+                                    {{ implode('، ', array_column($category['children'], 'name')) }}
+                                </p>
+                            @endif
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
+    {{-- در بازارک بفروشید --}}
     <section class="container-page mt-8">
-        <h2 class="mb-4 text-lg font-bold text-gray-900">{{ __('store.home.categories_heading') }}</h2>
-        <ul class="grid grid-cols-2 gap-3 md:grid-cols-4">
-            @foreach (__('store.home.categories') as $category)
-                <li class="card p-4">
-                    <span class="mb-3 flex size-11 items-center justify-center rounded-xl {{ $tileColors[$loop->index % count($tileColors)] }}">
-                        @svg('heroicon-o-shopping-bag', 'size-6')
-                    </span>
-                    <h3 class="font-bold text-gray-900">{{ $category['title'] }}</h3>
-                    <p class="mt-1 text-xs leading-6 text-gray-500">{{ $category['text'] }}</p>
-                </li>
-            @endforeach
-        </ul>
+        <div class="flex flex-col items-start gap-4 overflow-hidden rounded-2xl bg-navy-800 p-6 text-white md:flex-row md:items-center md:p-8">
+            <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                @svg('heroicon-o-building-storefront', 'size-8 text-accent-400')
+            </span>
+            <div class="flex-1">
+                <h2 class="text-lg font-bold md:text-xl">{{ __('store.home.seller_heading') }}</h2>
+                <p class="mt-1 text-sm leading-7 text-white/80">{{ __('store.home.seller_text') }}</p>
+            </div>
+            <a href="{{ route('seller.landing') }}" class="btn btn-accent shrink-0">
+                {{ __('store.home.seller_button') }}
+                @svg('heroicon-m-chevron-left', 'size-4')
+            </a>
+        </div>
     </section>
 
     {{-- تحویل: کدام ولایت‌ها فعال است --}}

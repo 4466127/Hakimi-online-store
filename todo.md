@@ -1,20 +1,22 @@
-# قدم‌های بعدی — فروشگاه آنلاین برادران حکیمی
+# قدم‌های بعدی — بازارک (فروشگاه آنلاین برادران حکیمی)
 
 > آخرین به‌روزرسانی: ۲۵ عقرب ۱۴۰۵ (۲۰۲۶-۱۱-۱۶). آنچه شد در `progress.md`؛ نقشه‌ی کامل در `ROADMAP.md`.
 
 ## ۱. صاحب پروژه (حالا)
-- [ ] مرحله‌ی ۲ را در مرورگر و با موبایل امتحان کنید (لیست امتحان: `ROADMAP.md` مرحله‌ی ۲؛ راهنما: `docs/rahnama-modir.md`).
+- [ ] مرحله‌ی ۲ و بخش ۲ب را در مرورگر و با موبایل امتحان کنید (لیست امتحان: `ROADMAP.md`؛ راهنما: `docs/rahnama-modir.md`).
+- [ ] شرایط همکاری با فروشندگان: کمیسیون، گرفتن جنس از دکان فروشنده، تسویه‌ی پول (پیش از ساختن پنل فروشنده).
 - [ ] در پنل: رمز اولیه را عوض کنید؛ در «کاربران پنل» شماره‌ی واقعی خود را به‌جای `0700000000` بنویسید.
-- [ ] در «تنظیمات فروشگاه»: شماره‌ی تماس، واتساپ، آدرس و لوگو.
-- [ ] جواب‌ها: رنگ سبز خوب است؟ خرید مهمان مجاز باشد؟ لیست ۲۰ تا ۵۰ جنس اول و عکس‌ها.
+- [ ] در «تنظیمات فروشگاه»: شماره‌ی تماس، واتساپ و آدرس (لوگوی بازارک خودکار گذاشته شد).
+- [ ] جواب‌ها: خرید مهمان مجاز باشد؟ لیست ۲۰ تا ۵۰ جنس اول و عکس‌ها.
 - [ ] برای پرداخت آنلاین: حساب پذیرنده (merchant) در حساب‌پی باز کنید و کلید API را آماده داشته باشید (مرحله‌ی ۵).
 
 ## ۲. برنامه‌نویس — مرحله‌ی ۳ (کاتالوگ)، به ترتیب
 پیش از هر بخش: نقشه‌ی کوتاه. بعد از هر بخش: Pint، تست‌ها، `npm run build`، به‌روزرسانی اسناد، کامیت و پوش به نام صاحب پروژه.
 
-- [ ] **۳-۱** نصب `intervention/image-laravel` (تأییدشده در ARCHITECTURE ۳-۳). migration: `categories`، `brands`، `attributes`، `attribute_options`، `category_attribute` (طبق DATABASE.md، **بی ستون `erp_*`**). مدل‌ها، Policyها (`canManageContent`)، منابع Filament (دسته‌ی درختی، برند، مشخصه با گزینه‌ها، مشخصه‌های هر دسته). seeder پیشنهادی چهار گروه.
-- [ ] **۳-۲** migration: `products`، `product_variants`، `variant_attribute_values`، `product_attribute_values`، `product_images`، `product_relations`، `slug_redirects`. فورم جنس با زبانه‌ها؛ ماتریس نوع‌ها؛ بارگذاری عکس (WebP ۳۰۰/۶۰۰/۱۲۰۰ در صف)؛ `PricingService`؛ `search_text` با `Persian::normalize`؛ slug و ریدایرکت.
-- [ ] **۳-۳** صفحه‌های مشتری به الگوی دیجی‌کالا: route با نام‌های `categories`، `category.show` (`/c/{slug}`)، `product.show` (`/p/{slug}`)، `search`؛ کارت جنس؛ فیلتر و مرتب‌سازی؛ گالری و انتخاب نوع با Alpine. صفحه‌ی اصلی واقعی وقتی `store.is_open` روشن است.
+- [x] ~~دسته‌ها~~ (بخش ۲ب).
+- [ ] **۳-۱** migration: `brands`، `attributes`، `attribute_options`، `category_attribute` (طبق DATABASE.md). مدل‌ها، Policyها (`canManageContent`)، منابع Filament (برند، مشخصه با گزینه‌ها، مشخصه‌های هر دسته). seeder پیشنهادی مشخصه‌ها. (Intervention لازم نیست؛ `ImageStore` با GD کافی است.)
+- [ ] **۳-۲** migration: `products`، `product_variants`، `variant_attribute_values`، `product_attribute_values`، `product_images`، `product_relations`، `slug_redirects`. فورم جنس با زبانه‌ها؛ ماتریس نوع‌ها؛ بارگذاری عکس (`ImageStore::storeResponsive`: WebP ۳۰۰/۶۰۰/۱۲۰۰)؛ `PricingService`؛ `search_text` با `Persian::normalize`؛ slug و ریدایرکت.
+- [ ] **۳-۳** صفحه‌های مشتری به الگوی دیجی‌کالا: route با نام‌های `product.show` (`/p/{slug}`)، `search`؛ اجناس در صفحه‌ی دسته‌ی موجود (`/category/{slug}`)؛ کارت جنس؛ فیلتر و مرتب‌سازی؛ گالری و انتخاب نوع با Alpine. صفحه‌ی اصلی واقعی وقتی `store.is_open` روشن است.
 - [ ] **۳-۴** `banners`، `home_sections` و منابع پنل؛ cache؛ `sitemap.xml`؛ `robots.txt`؛ JSON-LD.
 - [ ] **۳-۵** تست‌ها؛ `DemoSeeder` و دستور `demo:clear`.
 

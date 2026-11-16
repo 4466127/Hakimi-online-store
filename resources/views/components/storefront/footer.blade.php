@@ -5,7 +5,9 @@
 <footer class="border-t border-gray-200 bg-white pb-20 md:pb-0">
     <div class="container-page grid gap-8 py-10 md:grid-cols-3">
         <section>
-            <h2 class="mb-3 font-bold text-gray-900">{{ $store->name() }}</h2>
+            <h2 class="mb-3">
+                <img src="{{ $store->logoUrl() }}" alt="{{ $store->name() }}" width="140" height="40" class="h-10 w-auto" loading="lazy">
+            </h2>
             @if ($store->tagline())
                 <p class="text-sm leading-7 text-gray-600">{{ $store->tagline() }}</p>
             @endif
@@ -53,18 +55,22 @@
             @endif
         </section>
 
-        @if (count($pages) > 0)
-            <section>
-                <h2 class="mb-3 font-bold text-gray-900">{{ __('store.footer.pages') }}</h2>
-                <ul class="space-y-1 text-sm text-gray-600">
-                    @foreach ($pages as $page)
-                        <li>
-                            <a href="{{ $page['url'] }}" class="inline-flex min-h-11 items-center hover:text-brand-700">{{ $page['title'] }}</a>
-                        </li>
-                    @endforeach
-                </ul>
-            </section>
-        @endif
+        <section>
+            <h2 class="mb-3 font-bold text-gray-900">{{ __('store.footer.pages') }}</h2>
+            <ul class="space-y-1 text-sm text-gray-600">
+                <li>
+                    <a href="{{ route('seller.landing') }}" class="inline-flex min-h-11 items-center gap-1.5 font-medium text-accent-700 hover:text-accent-800">
+                        @svg('heroicon-o-building-storefront', 'size-5')
+                        {{ __('store.footer.sell') }}
+                    </a>
+                </li>
+                @foreach ($pages as $page)
+                    <li>
+                        <a href="{{ $page['url'] }}" class="inline-flex min-h-11 items-center hover:text-brand-700">{{ $page['title'] }}</a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
     </div>
 
     <div class="border-t border-gray-100">

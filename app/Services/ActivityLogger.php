@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Throwable;
@@ -20,15 +21,19 @@ class ActivityLogger
      * @param  string  $action  مثل user.created ، settings.updated ، auth.login
      * @param  Model|null  $subject  چیزی که کار روی آن شد
      * @param  array<string, mixed>|null  $changes  قبل/بعد یا جزئیات
-     * @param  User|null  $actor  اگر داده نشود، کاربر واردشده‌ی فعلی
+     * @param  User|Customer|null  $actor  اگر داده نشود: کاربر پنل واردشده، وگرنه مشتری واردشده
      */
-    public function log(string $action, ?Model $subject = null, ?array $changes = null, ?User $actor = null): ?ActivityLog
+    public function log(string $action, ?Model $subject = null, ?array $changes = null, User|Customer|null $actor = null): ?ActivityLog
     {
         try {
-            $actor ??= auth()->user() instanceof User ? auth()->user() : null;
+            $actor ??= $this->currentActor();
 
             return ActivityLog::create([
-                'actor_type' => $actor ? 'user' : 'system',
+                'actor_type' => match (true) {
+                    $actor instanceof User => 'user',
+                    $actor instanceof Customer => 'customer',
+                    default => 'system',
+                },
                 'actor_id' => $actor?->getKey(),
                 'action' => $action,
                 'subject_type' => $subject ? $this->subjectType($subject) : null,
@@ -42,6 +47,17 @@ class ActivityLogger
 
             return null;
         }
+    }
+
+    private function currentActor(): User|Customer|null
+    {
+        $user = auth()->guard('web')->user();
+        if ($user instanceof User) {
+            return $user;
+        }
+        $customer = auth()->guard('customer')->user();
+
+        return $customer instanceof Customer ? $customer : null;
     }
 
     private function subjectType(Model $subject): string

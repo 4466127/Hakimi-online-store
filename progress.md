@@ -1,11 +1,11 @@
-# پیشرفت کار — فروشگاه آنلاین برادران حکیمی
+# پیشرفت کار — بازارک (فروشگاه آنلاین برادران حکیمی)
 
 > این فایل می‌گوید **چه شد و چرا**. قدم بعدی در `todo.md`. اگر جلسه‌ی تازه شروع شد، اول `CLAUDE.md`، بعد این فایل و `todo.md` را بخوان.
 > آخرین به‌روزرسانی: ۲۵ عقرب ۱۴۰۵ (۲۰۲۶-۱۱-۱۶)
 
 ## وضعیت حالا
-- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد؛ **منتظر امتحان صاحب پروژه در مرورگر و موبایل**.
-- `php artisan test` → ۹۹ تست سبز. `vendor\bin\pint` → مرتب.
+- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. **بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓ ساخته شد؛ منتظر امتحان صاحب پروژه.**
+- `php artisan test` → ۱۴۶ تست سبز. `vendor\bin\pint` → مرتب.
 - کد در GitHub: `https://github.com/4466127/Hakimi-online-store.git` (شاخه‌ی `main`).
 
 ## تصمیم‌های صاحب پروژه (۲۵ عقرب ۱۴۰۵)
@@ -14,6 +14,10 @@
 3. **پرداخت:** دو گزینه — آنلاین با حساب‌پی (HesabPay) و هنگام تحویل. حساب‌پی در مرحله‌ی ۵، فقط با مستندات رسمی و حساب پذیرنده‌ی صاحب پروژه.
 4. **تحویل:** فعلاً فقط کابل و غزنی؛ بقیه «زیر کار است».
 5. **Git:** کامیت و پوش فقط به نام صاحب پروژه (`rezahakimi535`)؛ هیچ نشانی از Claude.
+6. **نام: بازارک (Bazarak)** با لوگوی صاحب پروژه (اصل در `resources/brand/`، نسخه‌ی وب WebP در `public/images/brand/`). رنگ‌ها از لوگو.
+7. **«در بازارک بفروشید»:** دیگران هم مثل دیجی‌کالا بفروشند. فعلاً فقط ثبت‌نام و بررسی فروشنده؛ به‌جای کد ملی **نمبر تذکره**. پنل فروشنده، کمیسیون و تسویه منتظر تصمیم صاحب پروژه.
+8. **منوی دسته‌بندی کالاها** مثل دیجی‌کالا (سه سطح).
+9. **عکس‌ها WebP** و کوچک (مثل دیجی‌کالا) برای انترنت ضعیف.
 
 ## آنچه در مرحله‌ی ۲ ساخته شد
 | بخش | کجا |
@@ -45,6 +49,26 @@
 - **محیط:** اگر MySQL خاموش بود، XAMPP Control Panel → Start. `npm` در ترمینالی که پیش از نصب Node باز بوده شناخته نمی‌شود؛ VS Code را ببند و باز کن.
 - کاربر صاحبِ محلی با شماره‌ی موقت `0700000000` ساخته شده؛ رمز اولیه در گفتگو به صاحب پروژه داده شد و در اولین ورود عوض می‌شود.
 
+## آنچه در بخش ۲ب ساخته شد
+| بخش | کجا |
+|---|---|
+| لوگو و رنگ | `public/images/brand/*.webp`، `public/favicon.{ico,png}`، `public/apple-touch-icon.png`؛ `StoreInfo::logoUrl()/logoDarkUrl()/iconUrl()`؛ `@theme` در `resources/css/app.css`؛ `brandLogo` در `AdminPanelProvider` |
+| دسته‌ها | `app/Models/Category.php` (عمق و مسیر خودکار، حداکثر ۳ سطح، جلوگیری از حلقه)؛ `app/Services/CategoryMenu.php` (درخت cacheشده: `categories.menu`)؛ `app/Filament/Resources/Categories/*`؛ `database/seeders/CategorySeeder.php` |
+| منوی بزرگ و صفحه‌های دسته | `resources/views/components/storefront/mega-menu.blade.php`، `resources/views/storefront/categories/*`، `CategoryController` |
+| حساب مشتری | guard `customer` در `config/auth.php`؛ `app/Models/Customer.php`؛ `CustomerAuthController`، `AccountController`؛ `app/Http/Requests/Storefront/Customer*Request.php`؛ `resources/views/storefront/{auth,account}/*`؛ `CustomerResource` |
+| فروشندگان | `app/Models/Seller.php`، `app/Enums/Seller{Status,Type}.php`، `app/Services/SellerOnboarding.php`، `SellerController`، `SellerOnboardingController`، `app/Http/Requests/Storefront/Seller*Request.php`، `resources/views/storefront/seller/*`، `app/Filament/Resources/Sellers/*` |
+| خانه‌های فورم فروشگاه | `resources/views/components/storefront/{field,form-errors,flash}.blade.php`؛ کلاس‌های `.form-*` و `.alert-*` در `app.css` |
+| متن‌ها | `lang/fa/customer.php`، `lang/fa/seller.php`، بخش‌های تازه در `store.php` و `admin.php` |
+
+## نکته‌های فنی بخش ۲ب
+- ورود مشتری با `auth('customer')`؛ `auth()` بی نام همان کاربر پنل است. `redirectGuestsTo` ← `/login` و `redirectUsersTo` ← `/account` در `bootstrap/app.php` (پنل Filament ورود خودش را دارد).
+- `ActivityLogger` کننده‌ی کار را خودش پیدا می‌کند: اول کاربر پنل، بعد مشتری (`actor_type = customer`). `ActivityLog::actorName()` برای نمایش.
+- همه‌ی قالب‌های `storefront.*` متغیر `$store` (StoreInfo) را از View composer دارند.
+- ترتیب درختی لیست دسته‌ها در پنل با دو join (`CategoriesTable::treeOrder`) — اگر روزی بیش از ۳ سطح خواستیم، این باید عوض شود.
+- `Seller::$attributes` پیش‌فرض‌ها را دارد (`status=draft`، `onboarding_step=1`)؛ فروشنده‌ی هر مشتری با `SellerOnboarding::forCustomer()` (همیشه از دیتابیس).
+- Intervention Image لازم نشد: GD برای WebP و چند اندازه کافی است (یک بسته‌ی کمتر).
+
 ## تغییر نسبت به طرح اولیه‌ی دیتابیس
+- اضافه در ۲ب: جدول `sellers`؛ `customers` و `categories` جلوتر از برنامه.
 - اضافه: `users.password_changed_at`، `activity_log.subject_label`، `provinces.delivery_enabled`.
 - حذف از طرح: همه‌ی ستون‌های `erp_*`، جدول‌های `sync_*`، `personal_access_tokens` (Sanctum نصب نشد).

@@ -63,6 +63,50 @@ class ImageStore
         return $path;
     }
 
+    /**
+     * عکس در چند اندازه (مثل دیجی‌کالا): موبایل فقط نسخه‌ی کوچک را می‌گیرد (srcset)،
+     * پس در انترنت ضعیف هم صفحه زود باز می‌شود. اندازه‌ای که از اصل عکس بزرگ‌تر باشد ساخته نمی‌شود.
+     *
+     * @param  list<int>  $widths  پهنای هر نسخه به پیکسل
+     * @return array{path: string, sizes: array<int, string>, width: int, height: int, file_size: int}
+     *
+     * @throws InvalidArgumentException اگر فایل عکسِ درست نباشد
+     */
+    public function storeResponsive(string $sourcePath, string $directory, array $widths = [300, 600, 1200], int $quality = 80, string $disk = 'public'): array
+    {
+        $info = @getimagesize($sourcePath);
+        if ($info === false || ! in_array($info[2], self::ALLOWED, true)) {
+            throw new InvalidArgumentException('Not an allowed image.');
+        }
+        [$width, $height] = [(int) $info[0], (int) $info[1]];
+
+        sort($widths);
+        $base = trim($directory, '/').'/'.Str::uuid();
+        $sizes = [];
+        foreach ($widths as $w) {
+            // عکس کوچک بزرگ نمی‌شود: آخرین نسخه همان اندازه‌ی اصل است
+            $target = min($w, $width);
+            if (isset($sizes[$target])) {
+                break;
+            }
+            $path = $this->storeAsWebp($sourcePath, $directory, max($target, (int) round($target * $height / max(1, $width))), $quality, $disk);
+            // نام خوانا: <uuid>-600.webp
+            $named = $base.'-'.$target.'.webp';
+            Storage::disk($disk)->move($path, $named);
+            $sizes[$target] = $named;
+        }
+
+        $largest = end($sizes);
+
+        return [
+            'path' => (string) $largest,
+            'sizes' => $sizes,
+            'width' => $width,
+            'height' => $height,
+            'file_size' => (int) Storage::disk($disk)->size((string) $largest),
+        ];
+    }
+
     /** فایل قدیمی را پاک می‌کند (اگر بود). */
     public function delete(?string $path, string $disk = 'public'): void
     {

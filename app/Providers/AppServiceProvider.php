@@ -6,11 +6,17 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\CategoryMenu;
 use App\Services\Settings;
+use App\Services\StoreInfo;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -20,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // تنظیمات فروشگاه در هر درخواست فقط یک بار خوانده شود
         $this->app->singleton(Settings::class);
+        $this->app->singleton(CategoryMenu::class);
     }
 
     public function boot(): void
@@ -29,6 +36,12 @@ class AppServiceProvider extends ServiceProvider
 
         // قاعده‌ی رمز همه‌ی کاربران پنل: حداقل ۸ حرف، با حرف و عدد
         Password::defaults(fn () => Password::min(8)->letters()->numbers());
+
+        // همه‌ی صفحه‌های فروشگاه $store (نام، لوگو، تماس) را دارند
+        View::composer('storefront.*', fn ($view) => $view->with('store', app(StoreInfo::class)));
+
+        // ورود و ثبت‌نام مشتری: حداکثر ۱۰ درخواست در دقیقه از یک IP
+        RateLimiter::for('customer-auth', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
         $this->registerAdminLoginGuards();
     }

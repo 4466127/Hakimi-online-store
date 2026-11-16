@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CurrencySeeder::class,
             ProvinceSeeder::class,
             PageSeeder::class,
+            CategorySeeder::class,
             OwnerSeeder::class,
         ]);
     }

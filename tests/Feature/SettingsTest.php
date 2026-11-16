@@ -26,7 +26,7 @@ class SettingsTest extends TestCase
     {
         $settings = app(Settings::class);
 
-        $this->assertSame('فروشگاه برادران حکیمی', $settings->get('store.name'));
+        $this->assertSame('بازارک', $settings->get('store.name'));
         $this->assertNull($settings->get('store.phone'));
         $this->assertSame('x', $settings->get('unknown.key', 'x'));
 
@@ -56,7 +56,7 @@ class SettingsTest extends TestCase
         $this->actingAs($owner);
 
         Livewire::test(ManageStoreSettings::class)
-            ->assertFormSet(['name' => 'فروشگاه برادران حکیمی'])
+            ->assertFormSet(['name' => 'بازارک'])
             ->fillForm([
                 'name' => 'فروشگاه حکیمی',
                 'tagline' => 'بهترین قیمت',

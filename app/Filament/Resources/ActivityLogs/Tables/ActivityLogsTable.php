@@ -17,16 +17,20 @@ class ActivityLogsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('user'))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['user', 'customer']))
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('admin.activity.when'))
                     ->formatStateUsing(fn ($state): string => Jalali::dateTime($state))
                     ->sortable(),
-                TextColumn::make('user.name')
+                TextColumn::make('actor')
                     ->label(__('admin.activity.who'))
+                    ->state(fn (ActivityLog $record): ?string => $record->actorName())
                     ->placeholder(__('admin.activity.system'))
-                    ->searchable(),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query->where(fn (Builder $q) => $q
+                        ->where(fn (Builder $u) => $u->where('actor_type', 'user')->whereHas('user', fn (Builder $w) => $w->where('name', 'like', "%{$search}%")))
+                        ->orWhere(fn (Builder $c) => $c->where('actor_type', 'customer')->whereHas('customer', fn (Builder $w) => $w->where('name', 'like', "%{$search}%")))
+                    )),
                 TextColumn::make('action')
                     ->label(__('admin.activity.what'))
                     ->formatStateUsing(fn (ActivityLog $record): string => $record->actionLabel())

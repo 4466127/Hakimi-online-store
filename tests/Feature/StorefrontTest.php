@@ -24,7 +24,7 @@ class StorefrontTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('<html lang="fa" dir="rtl">', false);
-        $response->assertSee('فروشگاه برادران حکیمی');
+        $response->assertSee('بازارک');
         $response->assertSee(__('store.home.soon_heading'));
     }
 
@@ -142,5 +142,18 @@ class StorefrontTest extends TestCase
         $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+
+    public function test_bazarak_logo_and_icons_are_served_as_small_local_files(): void
+    {
+        $this->get('/')->assertSee('/images/brand/bazarak-logo.webp', false)
+            ->assertSee('/favicon.ico', false)
+            ->assertSee(__('seller.nav_link'));
+
+        foreach (['images/brand/bazarak-logo.webp', 'images/brand/bazarak-logo-dark.webp', 'images/brand/bazarak-icon.webp', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png'] as $file) {
+            $this->assertFileExists(public_path($file));
+            // انترنت ضعیف: هیچ فایل لوگو بیش از ۲۰ کیلوبایت نیست
+            $this->assertLessThan(20 * 1024, filesize(public_path($file)), $file);
+        }
     }
 }

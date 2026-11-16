@@ -26,10 +26,26 @@ class ActivityLog extends Model
         ];
     }
 
-    /** کاربر پنل که این کار را کرد (اگر کار یک کاربر بود). */
+    /** کاربر پنل که این کار را کرد (فقط وقتی actor_type = user معنی دارد). */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'actor_id');
+    }
+
+    /** مشتری که این کار را کرد (فقط وقتی actor_type = customer معنی دارد). */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'actor_id')->withTrashed();
+    }
+
+    /** نام کننده‌ی کار، یا null اگر کار سیستم بود. */
+    public function actorName(): ?string
+    {
+        return match ($this->actor_type) {
+            'user' => $this->user?->name,
+            'customer' => $this->customer ? $this->customer->name.' ('.__('admin.activity.customer').')' : null,
+            default => null,
+        };
     }
 
     /** متن خوانای عمل: «کاربر ساخته شد». اگر ترجمه نبود همان کد. */

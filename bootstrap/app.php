@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // هدرهای امنیتی روی همه‌ی صفحه‌ها (فروشگاه و پنل مدیریت)
         $middleware->append(SecurityHeaders::class);
+
+        // مشتریِ واردنشده ← صفحه‌ی ورود فروشگاه؛ مشتریِ واردشده که به ورود/ثبت‌نام رفت ← حساب
+        // (پنل مدیریت مسیر ورود خودش را دارد و به این دو دست نمی‌زند)
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('account'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

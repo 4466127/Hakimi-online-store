@@ -36,25 +36,39 @@
 }
 
 /*
- | رنگ‌های برند. برای عوض کردن رنگ کل سایت فقط همین‌جا را عوض کنید:
- | brand = رنگ اصلی (دکمه‌ها، لینک‌ها)، accent = رنگ تأکید (تخفیف، نشان‌ها).
+ | رنگ‌های برند بازارک (از روی لوگو). برای عوض کردن رنگ کل سایت فقط همین‌جا را عوض کنید:
+ | brand  = فیروزه‌ای کیف لوگو (#0e8c8c): دکمه‌ها، لینک‌ها
+ | accent = نارنجی لوگو (#f2a33a): تخفیف، نشان‌ها، «در بازارک بفروشید»
+ | navy   = سرمه‌ای نوشته‌ی لوگو (#16324f): نوار بالا، عنوان‌ها
  */
 @theme {
     --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
 
-    --color-brand-50: var(--color-emerald-50);
-    --color-brand-100: var(--color-emerald-100);
-    --color-brand-200: var(--color-emerald-200);
-    --color-brand-500: var(--color-emerald-500);
-    --color-brand-600: var(--color-emerald-600);
-    --color-brand-700: var(--color-emerald-700);
-    --color-brand-800: var(--color-emerald-800);
-    --color-brand-900: var(--color-emerald-900);
+    --color-brand-50: #effafa;
+    --color-brand-100: #d6f1f0;
+    --color-brand-200: #ade2e1;
+    --color-brand-300: #79cccb;
+    --color-brand-400: #43b0b0;
+    --color-brand-500: #1f9a9a;
+    --color-brand-600: #0e8c8c;
+    --color-brand-700: #0b7071;
+    --color-brand-800: #0d5a5c;
+    --color-brand-900: #0f4a4c;
 
-    --color-accent-50: var(--color-orange-50);
-    --color-accent-100: var(--color-orange-100);
-    --color-accent-500: var(--color-orange-500);
-    --color-accent-600: var(--color-orange-600);
+    --color-accent-50: #fef7ec;
+    --color-accent-100: #fdebcf;
+    --color-accent-200: #fad49c;
+    --color-accent-400: #f5b75e;
+    --color-accent-500: #f2a33a;
+    --color-accent-600: #dd8a1f;
+    --color-accent-700: #b06a14;
+    --color-accent-800: #8a5214;
+
+    --color-navy-700: #234569;
+    --color-navy-800: #16324f;
+    --color-navy-900: #0f1e2e;
+
+    --color-cream: #fff8ec;
 }
 
 @layer base {
@@ -70,6 +84,11 @@
     /* حلقه‌ی واضح دور چیزی که با کیبورد انتخاب شده (دسترس‌پذیری) */
     :focus-visible {
         @apply outline-2 outline-offset-2 outline-brand-600;
+    }
+
+    /* مثلث پیش‌فرض details در سافاری پنهان (آیکون خودمان را داریم) */
+    summary::-webkit-details-marker {
+        display: none;
     }
 
     /* تا Alpine آماده نشده، چیزهای پنهان دیده نشود */
@@ -89,8 +108,68 @@
         @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-medium transition-colors;
     }
 
+    /* brand-700 تا متن سفید خوانا باشد (کنتراست بیش از ۴٫۵) */
     .btn-primary {
-        @apply bg-brand-600 text-white hover:bg-brand-700;
+        @apply bg-brand-700 text-white hover:bg-brand-800;
+    }
+
+    .btn-accent {
+        @apply bg-accent-500 text-navy-900 hover:bg-accent-400;
+    }
+
+    .btn:disabled,
+    .btn[aria-disabled='true'] {
+        @apply cursor-not-allowed opacity-60;
+    }
+
+    /* فورم‌ها */
+    .form-label {
+        @apply mb-1.5 block text-sm font-medium text-gray-800;
+    }
+
+    .form-label .req {
+        @apply text-red-600;
+    }
+
+    .form-input {
+        @apply block min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none;
+    }
+
+    textarea.form-input {
+        @apply py-2.5 leading-7;
+    }
+
+    .form-input[aria-invalid='true'] {
+        @apply border-red-500 focus:border-red-500 focus:ring-red-100;
+    }
+
+    .form-help {
+        @apply mt-1.5 text-xs leading-6 text-gray-500;
+    }
+
+    .form-error {
+        @apply mt-1.5 text-xs leading-6 text-red-600;
+    }
+
+    .form-check {
+        @apply size-5 shrink-0 rounded border-gray-300 accent-brand-700;
+    }
+
+    /* پیام سبز/زرد/سرخ بالای صفحه */
+    .alert {
+        @apply rounded-xl border px-4 py-3 text-sm leading-7;
+    }
+
+    .alert-success {
+        @apply border-brand-200 bg-brand-50 text-brand-900;
+    }
+
+    .alert-error {
+        @apply border-red-200 bg-red-50 text-red-800;
+    }
+
+    .alert-warning {
+        @apply border-accent-200 bg-accent-50 text-accent-800;
     }
 
     .btn-whatsapp {
