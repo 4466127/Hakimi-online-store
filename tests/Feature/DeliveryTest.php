@@ -218,7 +218,6 @@ class DeliveryTest extends TestCase
         $zone = DeliveryZone::query()->with(['slots', 'weightTiers', 'province'])->firstOrFail();
         $this->assertSame(1, DeliveryZone::query()->count());
         $this->assertSame('KAB', $zone->province->code);
-        $this->assertSame('300.00', $zone->slots->first()->fee, 'شروع از ۳۰۰ افغانی (تصمیم صاحب پروژه)');
         $fees = $zone->slots->pluck('fee')->map(fn ($f) => (float) $f)->all();
         $sorted = $fees;
         rsort($sorted);
@@ -230,6 +229,61 @@ class DeliveryTest extends TestCase
         $light = $this->calc()->weightFee($zone, 1000);
         $heavy = $this->calc()->weightFee($zone, 60000);
         $this->assertTrue(bccomp($heavy, $light, 2) > 0);
+    }
+
+    /**
+     * قید صاحب پروژه (۲۶ عقرب ۱۴۰۵) روی عددهای اولیه: بار تا ۵ کیلو هیچ‌وقت بیشتر از ۲۰۰ افغانی؛
+     * بالاتر از ۵ کیلو بین ۲۵۰ تا ۸۰۰. اگر کسی عددهای seeder را عوض کند و قید بشکند، این تست می‌گوید.
+     */
+    public function test_default_fees_keep_the_owners_limits_for_every_weight_and_every_day(): void
+    {
+        $this->artisan('migrate:fresh');
+        $this->seed(ProvinceSeeder::class);
+        $this->seed(DeliveryZoneSeeder::class);
+        $zone = DeliveryZone::query()->with(['slots', 'weightTiers'])->firstOrFail();
+
+        foreach ([0, 1, 500, 2500, 4999, 5000] as $grams) {
+            foreach ($this->calc()->options($zone, $grams, $this->monday()) as $option) {
+                $this->assertTrue(bccomp($option->total, '200', 2) <= 0, "بار {$grams} گرام نباید بیشتر از ۲۰۰ باشد: {$option->total}");
+                $this->assertTrue(bccomp($option->total, '100', 2) >= 0);
+            }
+        }
+        foreach ([5001, 7000, 10000, 15000, 20000, 35000, 50000, 50001, 120000] as $grams) {
+            foreach ($this->calc()->options($zone, $grams, $this->monday()) as $option) {
+                $this->assertTrue(bccomp($option->total, '250', 2) >= 0, "بار {$grams} گرام نباید کمتر از ۲۵۰ باشد: {$option->total}");
+                $this->assertTrue(bccomp($option->total, '800', 2) <= 0, "بار {$grams} گرام نباید بیشتر از ۸۰۰ باشد: {$option->total}");
+            }
+        }
+
+        // و کرایه با وزن بالاتر هیچ‌وقت کم نمی‌شود
+        $previous = '0.00';
+        foreach ([1000, 5000, 5001, 10000, 20000, 50000, 80000] as $grams) {
+            $fee = $this->calc()->options($zone, $grams, $this->monday())[0]->total;
+            $this->assertTrue(bccomp($fee, $previous, 2) >= 0);
+            $previous = $fee;
+        }
+    }
+
+    public function test_migration_lowers_old_default_fees_but_keeps_fees_the_admin_changed(): void
+    {
+        $migration = require database_path('migrations/2026_11_18_000400_lower_default_delivery_fees.php');
+
+        // عددهای قدیمی seeder (همان منطقه‌ی setUp) ← تازه
+        $zone = $this->zone;
+        $migration->up();
+        $zone = $zone->fresh(['slots', 'weightTiers']);
+        $this->assertSame(['200.00', '175.00', '150.00', '125.00', '100.00'], $zone->slots->pluck('fee')->all());
+        $this->assertSame(['0.00', '150.00', '250.00', '400.00', '600.00'], $zone->weightTiers->pluck('extra_fee')->all());
+
+        // برگشت‌پذیر
+        $migration->down();
+        $this->assertSame(['300.00', '250.00', '200.00', '150.00', '100.00'], $zone->fresh(['slots'])->slots->pluck('fee')->all());
+
+        // مدیر یک عدد را عوض کرده ← هیچ‌چیز دست نمی‌خورد
+        $zone->slots()->where('day_rank', 1)->update(['fee' => 350]);
+        $migration->up();
+        $this->assertSame(['350.00', '250.00', '200.00', '150.00', '100.00'], $zone->fresh(['slots'])->slots->pluck('fee')->all());
+        $this->assertSame(['0.00', '100.00', '200.00', '400.00', '800.00'], $zone->fresh(['weightTiers'])->weightTiers->pluck('extra_fee')->all());
     }
 
     // ───────────────────────── پنل ─────────────────────────
