@@ -231,30 +231,34 @@ class DeliveryZoneResource extends Resource
     }
 
     /**
-     * مشکل پله‌های وزنی یا null: وزن تکراری، یا پله‌ی بی سقف که آخر نیست.
+     * مشکل پله‌های وزنی یا null. پله‌ی بی عدد («سنگین‌تر از همه») هر جا باشد کار می‌کند (محاسبه‌گر آن را
+     * همیشه بعد از پله‌های عددی حساب می‌کند)، ولی فقط یکی؛ وزن تکراری و صفر هم نه. پیام شماره‌ی پله را می‌گوید.
      *
      * @param  array<int|string, array<string, mixed>>  $tiers
      */
     public static function tierProblem(array $tiers): ?string
     {
         $seen = [];
-        $rows = array_values($tiers);
-        foreach ($rows as $i => $row) {
+        $open = [];
+        foreach (array_values($tiers) as $i => $row) {
+            $n = $i + 1;
             $kg = Num::parse((string) ($row['up_to_grams'] ?? ''));
             if ($kg === null) {
-                if ($i !== count($rows) - 1) {
-                    return (string) __('admin.delivery.tier_open_must_be_last');
-                }
+                $open[] = $n;
 
                 continue;
             }
             if (bccomp($kg, '0', 3) <= 0) {
-                return (string) __('admin.delivery.tier_weight_invalid');
+                return (string) __('admin.delivery.tier_weight_invalid', ['n' => Num::toFa((string) $n)]);
             }
             if (isset($seen[$kg])) {
-                return (string) __('admin.delivery.tier_duplicate');
+                return (string) __('admin.delivery.tier_duplicate', ['a' => Num::toFa((string) $seen[$kg]), 'b' => Num::toFa((string) $n)]);
             }
-            $seen[$kg] = true;
+            $seen[$kg] = $n;
+        }
+
+        if (count($open) > 1) {
+            return (string) __('admin.delivery.tier_open_only_one', ['rows' => implode('، ', array_map(fn (int $n) => Num::toFa((string) $n), $open))]);
         }
 
         return null;

@@ -331,7 +331,7 @@ class DeliveryTest extends TestCase
         $this->assertTrue(ActivityLog::query()->where('action', 'deliveryslot.updated')->exists(), 'تغییر کرایه در تاریخچه ثبت می‌شود');
     }
 
-    public function test_weight_tiers_with_a_duplicate_weight_or_a_misplaced_open_tier_are_rejected(): void
+    public function test_weight_tiers_with_a_duplicate_weight_or_two_open_tiers_are_rejected_with_row_numbers(): void
     {
         $this->actingAs(User::factory()->create(['role' => UserRole::Owner]));
         $component = Livewire::test(EditDeliveryZone::class, ['record' => $this->zone->getKey()]);
@@ -340,13 +340,33 @@ class DeliveryTest extends TestCase
         $keys = array_keys($tiers);
         $tiers[$keys[1]]['up_to_grams'] = '5';          // با پله‌ی اول (۵ کیلو) یکی
         $component->fillForm(['weightTiers' => $tiers])->call('save')->assertHasFormErrors(['weightTiers']);
+        $this->assertStringContainsString('پله‌ی ۱ و پله‌ی ۲', $component->errors()->first('data.weightTiers'));
 
         $tiers = $component->get('data.weightTiers');
-        $tiers[$keys[0]]['up_to_grams'] = '';           // پله‌ی بی عدد اول، نه آخر
+        $tiers[$keys[0]]['up_to_grams'] = '';           // دو پله‌ی بی عدد: اول و آخر
         $tiers[$keys[1]]['up_to_grams'] = '10';
         $component->fillForm(['weightTiers' => $tiers])->call('save')->assertHasFormErrors(['weightTiers']);
+        $this->assertStringContainsString('۱، ۵', $component->errors()->first('data.weightTiers'));
 
         $this->assertSame(5000, $this->zone->fresh(['weightTiers'])->weightTiers->first()->up_to_grams);
+    }
+
+    public function test_the_open_tier_can_be_anywhere_in_the_list_and_still_means_heavier_than_all(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::Owner]));
+        $component = Livewire::test(EditDeliveryZone::class, ['record' => $this->zone->getKey()]);
+
+        // پله‌ی بی عدد را اول بگذار (سه پله‌ی دیگر عددی)
+        $tiers = $component->get('data.weightTiers');
+        $keys = array_keys($tiers);
+        $tiers[$keys[0]] = ['up_to_grams' => '', 'extra_fee' => '900'];
+        $tiers[$keys[4]] = ['up_to_grams' => '30', 'extra_fee' => '300'];
+        $component->fillForm(['weightTiers' => $tiers])->call('save')->assertHasNoFormErrors();
+
+        $zone = $this->zone->fresh(['weightTiers', 'slots']);
+        $this->assertSame('900.00', $this->calc()->weightFee($zone, 60000), 'سنگین‌تر از همه ← پله‌ی بی عدد، هر جا که باشد');
+        $this->assertSame('300.00', $this->calc()->weightFee($zone, 25000));
+        $this->assertSame('100.00', $this->calc()->weightFee($zone, 7000));   // پله‌ی ۱۰ کیلوی همین منطقه‌ی آزمایشی
     }
 
     public function test_negative_or_text_fee_is_rejected(): void
