@@ -35,6 +35,8 @@
         <meta property="og:image" content="{{ url($ogImage) }}">
     @endif
 
+    {{-- آیکون برداری (۹۰۰ بایت، همیشه تیز)؛ مرورگر قدیمی ico و png را می‌گیرد --}}
+    <link rel="icon" href="/images/brand/bazarak-icon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="icon" href="/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">

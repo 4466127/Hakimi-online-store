@@ -150,7 +150,7 @@ class StorefrontTest extends TestCase
             ->assertSee('/favicon.ico', false)
             ->assertSee(__('seller.nav_link'));
 
-        foreach (['images/brand/bazarak-logo.webp', 'images/brand/bazarak-logo-dark.webp', 'images/brand/bazarak-icon.webp', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png'] as $file) {
+        foreach (['images/brand/bazarak-logo.webp', 'images/brand/bazarak-logo-dark.webp', 'images/brand/bazarak-icon.webp', 'images/brand/bazarak-icon.svg', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png'] as $file) {
             $this->assertFileExists(public_path($file));
             // انترنت ضعیف: هیچ فایل لوگو بیش از ۲۰ کیلوبایت نیست
             $this->assertLessThan(20 * 1024, filesize(public_path($file)), $file);

@@ -58,6 +58,10 @@ return [
         'breadcrumb' => 'مسیر صفحه',
     ],
 
+    'delivery' => [
+        'tomorrow' => 'فردا',
+    ],
+
     'listing' => [
         'filters' => 'فیلتر',
         'apply' => 'اعمال فیلتر',

@@ -283,7 +283,9 @@ Index: `product_id`، (`is_active`)، `barcode`.
 #### `provinces` — ۳۴ ولایت (داده‌ی اولیه)
 `id`، `code` VARCHAR(10) UNIQUE (کد ISO 3166-2:AF: `KAB`، `HER`، `GHA`…)، `name` JSON، `position`، `is_active`، `delivery_enabled` BOOL (آیا فعلاً به این ولایت جنس می‌رسانیم؛ شروع: فقط کابل، بقیه «زیر کار است»).
 
-#### `delivery_zones` — منطقه‌ی تحویل و کرایه
+> **ساخته شد (۲۶ عقرب ۱۴۰۵) با طرح تازه‌ی کرایه «روز تحویل + وزن»:** `delivery_zones` (name JSON، `province_id` NULL یکتا، `is_active`، `position`، `cutoff_hour` ساعت قطع سفارش، `days_off` JSON روزهای هفته‌ی ISO، `default_item_weight_grams`، `max_weight_grams` NULL)، `delivery_slots` (`zone_id`، `day_rank` ۱ = زودترین روز، `fee` DECIMAL(12,2)، `is_active`)، `delivery_weight_tiers` (`zone_id`، `up_to_grams` NULL = سنگین‌تر از همه، `extra_fee`، `position`). ستون‌های جدول قدیمی زیر (کرایه‌ی ثابت، `cod_fee`، `free_over`، `eta_days`) **ساخته نشد**؛ «روز + وزن» جایش را گرفت و «رایگان بالای مبلغ» اگر خواسته شد بعداً با تصمیم جدا اضافه می‌شود. در `orders` (مرحله‌ی ۴): `delivery_zone_id`، `delivery_date`، `delivery_fee` (کاپی همان لحظه) و `delivery_weight_grams`.
+
+#### (طرح اولیه‌ی قدیمی؛ جایگزین شد) `delivery_zones` — منطقه‌ی تحویل و کرایه
 | ستون | نوع | توضیح |
 |---|---|---|
 | id | | |
@@ -403,7 +405,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
 | ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
 | ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products` ✓، `product_attribute_values` ✓، `product_variants` ✓، `variant_attribute_values` ✓، `product_images` ✓، `product_relations` ✓، `slug_redirects` ✓ (۳-۲)، `banners`، `home_sections` |
-| ۴ | `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
+| ۴ | `delivery_zones` ✓، `delivery_slots` ✓، `delivery_weight_tiers` ✓ (کرایه، ۲۶ عقرب)، `customer_addresses`، `carts`، `cart_items`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |
 
 مرحله‌ی ۶ جدول تازه ندارد (سرور، امنیت، SEO).
