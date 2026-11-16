@@ -4,8 +4,8 @@
 > آخرین به‌روزرسانی: ۲۵ عقرب ۱۴۰۵ (۲۰۲۶-۱۱-۱۶)
 
 ## وضعیت حالا
-- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓. **بخش ۲ج (دسته‌های بیشتر، کمیسیون، حساب و تسویه‌ی فروشندگان، مزایا، راهنمای AWS) ✓ ساخته شد؛ منتظر امتحان صاحب پروژه.**
-- `php artisan test` → ۱۶۵ تست سبز. `vendor\bin\pint` → مرتب.
+- مرحله‌ی ۱ (اسناد) ✓ تأیید شد. مرحله‌ی ۲ (پایه) ✓ ساخته شد. بخش ۲ب (بازارک: نام و لوگو، دسته‌ها، حساب مشتری، «در بازارک بفروشید») ✓. بخش ۲ج (دسته‌های بیشتر، کمیسیون، حساب و تسویه‌ی فروشندگان، مزایا، راهنمای AWS) ✓. **مرحله‌ی ۳-۱ (برندها، مشخصه‌ها، مشخصه‌های هر دسته) ✓. قدم بعدی: ۳-۲ (جنس و نوع‌ها).**
+- `php artisan test` → ۱۷۴ تست سبز. `vendor\bin\pint` → مرتب.
 - کد در GitHub: `https://github.com/4466127/Hakimi-online-store.git` (شاخه‌ی `main`).
 
 ## تصمیم‌های صاحب پروژه (۲۵ عقرب ۱۴۰۵)
@@ -73,6 +73,17 @@
 | سایت | `storefront/seller/commissions.blade.php`، بخش‌های تازه در `landing` و `status` |
 | متن‌ها | `lang/fa/commission.php`، بخش‌های `marketplace_settings` و `finance` در `admin.php` |
 | تست | `tests/Feature/CommissionTest.php` |
+
+## آنچه در مرحله‌ی ۳-۱ ساخته شد
+| بخش | کجا |
+|---|---|
+| جدول‌ها | `database/migrations/2026_11_17_000200_create_brands_and_attributes_tables.php` |
+| مدل‌ها | `Brand`، `Attribute` (فقط `select` نوع‌ساز می‌شود)، `AttributeOption`؛ `Category::catalogAttributes()` و `Category::effectiveAttributes()` (ارث‌بری) |
+| پنل | `Resources/Brands/*` (پنجره‌ای)، `Resources/Attributes/*` (گزینه‌ها با Repeater)، `Resources/Categories/RelationManagers/CategoryAttributesRelationManager.php` |
+| داده‌ی اولیه | `database/seeders/CatalogAttributeSeeder.php` |
+| تست | `tests/Feature/CatalogAttributeTest.php` |
+
+- نام رابطه **`catalogAttributes`** است، نه `attributes` (با `$attributes` داخلی Eloquent قاطی می‌شد). در `Category`، کلاس cast با نام `CastAttribute` وارد شده تا با مدل `Attribute` قاطی نشود.
 
 ## نکته‌های فنی بخش ۲ج
 - **مرحله‌ی ۴ باید:** هنگام «تحویل شد» برای هر ردیف سفارش `CommissionService::recordSale(new SaleLine('order_item', $item->id, $seller, $category, $itemsAmount))` را صدا بزند (کرایه را نفرستد) و نرخ/مبلغ برگشتی را روی `order_items` کپی کند؛ هنگام مرجوعی `recordReversal($entry, 'order_return:'.$return->id, $amount)`. لغو هیچ کاری ندارد.

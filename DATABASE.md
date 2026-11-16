@@ -400,7 +400,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | ۲ ✓ | `users`، `activity_log`، `settings`، `pages`، `currencies`، `provinces` + جدول‌های لاراول (`sessions`، `cache`، `jobs`، …) |
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
 | ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
-| ۳ | `brands`، `attributes`، `attribute_options`، `category_attribute`، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
+| ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products`، `product_attribute_values`، `product_variants`، `variant_attribute_values`، `product_images`، `product_relations`، `slug_redirects`، `banners`، `home_sections` |
 | ۴ | `customer_addresses`، `carts`، `cart_items`، `delivery_zones`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |
 

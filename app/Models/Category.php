@@ -10,13 +10,15 @@ use App\Services\ImageStore;
 use App\Support\Persian;
 use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Casts\Attribute as CastAttribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use LogicException;
@@ -120,9 +122,9 @@ class Category extends Model
     }
 
     /** آدرس همیشه به شکل خوانا و یک‌شکل ذخیره می‌شود. */
-    protected function slug(): Attribute
+    protected function slug(): CastAttribute
     {
-        return Attribute::make(
+        return CastAttribute::make(
             set: fn (?string $value) => Persian::slug($value),
         );
     }
@@ -135,6 +137,36 @@ class Category extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('position')->orderBy('id');
+    }
+
+    /** مشخصه‌هایی که مستقیم به همین دسته داده شده (زیردسته‌ها به ارث می‌برند: effectiveAttributes). */
+    public function catalogAttributes(): BelongsToMany
+    {
+        return $this->belongsToMany(Attribute::class, 'category_attribute')
+            ->withPivot(['is_required', 'position'])
+            ->orderByPivot('position');
+    }
+
+    /**
+     * همه‌ی مشخصه‌های این دسته: از ریشه تا خودش؛ اگر یک مشخصه چند جا بود، تنظیم نزدیک‌ترین دسته.
+     *
+     * @return SupportCollection<int, Attribute>
+     */
+    public function effectiveAttributes(): SupportCollection
+    {
+        $chain = [...$this->ancestorIds(), $this->id];
+        $rows = Attribute::query()->active()
+            ->join('category_attribute as ca', 'ca.attribute_id', '=', 'attributes.id')
+            ->whereIn('ca.category_id', $chain)
+            ->get(['attributes.*', 'ca.category_id as via_category_id', 'ca.is_required as pivot_required', 'ca.position as pivot_position']);
+
+        $depthOf = array_flip($chain);   // ریشه = ۰ … خود = بیشتر
+
+        return $rows
+            ->sortBy(fn (Attribute $a) => $depthOf[(int) $a->via_category_id] ?? 0)
+            ->keyBy('id')                  // نزدیک‌ترین دسته آخر می‌آید و برنده است
+            ->sortBy(fn (Attribute $a) => [(int) $a->pivot_position, $a->position, $a->id])
+            ->values();
     }
 
     public function scopeActive(Builder $query): Builder

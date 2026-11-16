@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ProvinceSeeder::class,
             PageSeeder::class,
             CategorySeeder::class,
+            CatalogAttributeSeeder::class,
             OwnerSeeder::class,
         ]);
     }
