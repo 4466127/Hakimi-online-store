@@ -111,7 +111,7 @@ class AdminNotificationsTest extends TestCase
             ->assertNotified(__('admin.notify.failed_title'));
     }
 
-    public function test_error_notification_is_red_persistent_and_lists_the_reasons(): void
+    public function test_error_notification_is_red_lasts_longer_and_lists_the_reasons(): void
     {
         AdminNotify::validationFailed(ValidationException::withMessages([
             'a' => ['قیمت لازم است.'],
@@ -121,7 +121,8 @@ class AdminNotificationsTest extends TestCase
 
         $notification = $this->lastNotification();
         $this->assertSame('danger', $notification['status']);
-        $this->assertSame('persistent', $notification['duration'], 'خطا می‌ماند تا مدیر بخواند و ببندد');
+        $this->assertSame(AdminNotify::ERROR_MS, $notification['duration'], 'خطا ۱۵ ثانیه می‌ماند و بعد خودش بسته می‌شود');
+        $this->assertGreaterThan(AdminNotify::SUCCESS_MS, AdminNotify::ERROR_MS);
         $this->assertSame(__('admin.notify.failed_title'), $notification['title']);
         $this->assertStringContainsString('قیمت لازم است.', (string) $notification['body']);
         $this->assertStringContainsString('سایز درست نیست.', (string) $notification['body']);

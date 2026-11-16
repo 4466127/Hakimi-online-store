@@ -10,13 +10,16 @@ use Illuminate\Validation\ValidationException;
 /**
  * اعلان‌های پنل مدیریت (تصمیم صاحب پروژه، ۲۶ عقرب ۱۴۰۵):
  *   - موفقیت: سبز، ۸ ثانیه.
- *   - خطا: سرخ، با دلیل، و می‌ماند تا مدیر ببندد (تا دلیل را بخواند).
+ *   - خطا: سرخ، با دلیل، ۱۵ ثانیه (بیشتر از موفقیت تا دلیل را بخواند)؛ با ضربدر زودتر بسته می‌شود.
  * همه‌ی پنل از همین‌جا می‌گذرد تا شکل و زمان یکسان باشد.
  */
 final class AdminNotify
 {
     /** زمان نمایش اعلان موفقیت (میلی‌ثانیه). */
     public const SUCCESS_MS = 8000;
+
+    /** زمان نمایش اعلان خطا (میلی‌ثانیه). */
+    public const ERROR_MS = 15000;
 
     /** بیشترین تعداد دلیل در یک اعلان خطا. */
     private const MAX_REASONS = 5;
@@ -30,10 +33,10 @@ final class AdminNotify
         $notification->send();
     }
 
-    /** خطای سرخ با دلیل (متن ساده، یا چند خط با <br>؛ Filament آن را پاک‌سازی می‌کند)؛ می‌ماند تا بسته شود. */
+    /** خطای سرخ با دلیل (متن ساده، یا چند خط با <br>؛ Filament آن را پاک‌سازی می‌کند)؛ ۱۵ ثانیه می‌ماند. */
     public static function failed(string $title, ?string $reason = null): void
     {
-        $notification = Notification::make()->danger()->title($title)->persistent();
+        $notification = Notification::make()->danger()->title($title)->duration(self::ERROR_MS);
         if ($reason !== null && $reason !== '') {
             $notification->body($reason);
         }

@@ -93,7 +93,7 @@
 - قاعده‌ی کار: هر جنس امتحانیِ من در دیتابیس لپتاپ با شناسه و نام دقیق پاک شود، **هیچ‌وقت `forceDelete` روی همه‌ی اجناس** (صاحب پروژه الان جنس واقعی وارد می‌کند).
 
 ## اعلان‌های پنل (۲۶ عقرب ۱۴۰۵، خواست صاحب پروژه)
-- `App\Support\AdminNotify`: `done()` سبز ۸ ثانیه، `failed()` سرخ و مانا، `validationFailed()` (تا ۵ دلیل + «و n مورد دیگر»). همه‌ی پنل از همین‌جا می‌گذرد.
+- `App\Support\AdminNotify`: `done()` سبز ۸ ثانیه، `failed()` سرخ ۱۵ ثانیه (اول مانا بود؛ صاحب پروژه خواست خودکار بسته شود)، `validationFailed()` (تا ۵ دلیل + «و n مورد دیگر»). همه‌ی پنل از همین‌جا می‌گذرد.
 - در `AppServiceProvider::registerAdminNotifications`: مدت پیش‌فرض ۸ ثانیه؛ وسط بالا؛ `BasePage::$reportValidationErrorUsing` برای خطای فورم‌های Filament (اعتبارسنجی زنده‌ی یک خانه در blur اعلان نمی‌دهد: با `debug_backtrace` تشخیص `validateOnly`)؛ `ToggleColumn::configureUsing` برای «ذخیره شد» روی سوییچ جدول‌ها.
 - خطای قاعده‌های سرویس جنس (SKU تکراری…) از مسیر `validate()` نمی‌گذرد؛ `ProductFormData::persist` خودش `AdminNotify::validationFailed` را صدا می‌زند.
 - نکته: `Notification::body()` فقط رشته می‌گیرد (نه HtmlString)؛ `<br>` را Filament پاک‌سازی می‌کند. در تست‌ها اعلان‌ها از `NotificationMailbox` + `Livewire\Notifications` خوانده می‌شود (نه از session خام).
