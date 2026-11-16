@@ -166,10 +166,9 @@ class Product extends Model
         return bccomp((string) $this->total_stock, '0', 3) > 0;
     }
 
-    /** آدرس صفحه‌ی جنس (route در مرحله‌ی ۳-۳ ساخته می‌شود؛ تا آن وقت همین مسیر ثابت). */
     public function url(): string
     {
-        return url('/p/'.rawurlencode($this->slug));
+        return route('product.show', ['slug' => $this->slug]);
     }
 
     public function primaryImage(): ?ProductImage

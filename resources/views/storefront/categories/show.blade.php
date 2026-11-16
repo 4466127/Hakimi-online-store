@@ -1,5 +1,5 @@
 {{--
-    صفحه‌ی یک دسته: مسیر صفحه، زیردسته‌ها. اجناس در مرحله‌ی ۳ (کاتالوگ) به همین صفحه اضافه می‌شود.
+    صفحه‌ی یک دسته: مسیر صفحه، زیردسته‌ها، اجناس (همین دسته و زیردسته‌ها) با فیلتر و مرتب‌سازی.
 --}}
 @extends('storefront.layouts.app')
 
@@ -10,7 +10,11 @@
 
 @section('title', $category->tr('meta_title') ?: $name)
 @section('description', $category->tr('meta_description') ?: ($description ?: $name.' — '.$store->name()))
-@section('canonical', $category->url())
+{{-- فیلتر و مرتب‌سازی صفحه‌ی تازه نیست: canonical همان دسته است (فقط شماره‌ی صفحه می‌ماند) --}}
+@section('canonical', $category->url().($products->currentPage() > 1 ? '?page='.$products->currentPage() : ''))
+@if ($filters->activeCount() > 0 || $filters->sort !== 'new')
+    @push('head')<meta name="robots" content="noindex,follow">@endpush
+@endif
 
 @section('content')
     <div class="container-page py-6 md:py-8">
@@ -57,16 +61,20 @@
             </section>
         @endif
 
-        {{-- اجناس: مرحله‌ی ۳ --}}
-        <section class="card mt-6 p-8 text-center">
-            @svg('heroicon-o-cube', 'mx-auto size-12 text-gray-300')
-            <h2 class="mt-3 font-bold text-gray-900">{{ __('store.categories.products_soon_heading') }}</h2>
-            <p class="mx-auto mt-2 max-w-md text-sm leading-7 text-gray-500">{{ __('store.categories.products_soon_text') }}</p>
-            @if ($store->whatsappLink())
-                <a href="{{ $store->whatsappLink($name) }}" target="_blank" rel="noopener" class="btn btn-whatsapp mt-4">
-                    @svg('heroicon-o-chat-bubble-left-right', 'size-5') {{ __('store.header.whatsapp') }}
-                </a>
-            @endif
-        </section>
+        {{-- اجناس همین دسته و زیردسته‌ها، با فیلتر و مرتب‌سازی --}}
+        @if ($products->total() === 0 && $filters->activeCount() === 0)
+            <section class="card mt-6 p-8 text-center">
+                @svg('heroicon-o-cube', 'mx-auto size-12 text-gray-300')
+                <h2 class="mt-3 font-bold text-gray-900">{{ __('store.categories.products_empty_heading') }}</h2>
+                <p class="mx-auto mt-2 max-w-md text-sm leading-7 text-gray-500">{{ __('store.categories.products_empty_text') }}</p>
+                @if ($store->whatsappLink())
+                    <a href="{{ $store->whatsappLink($name) }}" target="_blank" rel="noopener" class="btn btn-whatsapp mt-4">
+                        @svg('heroicon-o-chat-bubble-left-right', 'size-5') {{ __('store.header.whatsapp') }}
+                    </a>
+                @endif
+            </section>
+        @else
+            @include('storefront.partials.listing')
+        @endif
     </div>
 @endsection

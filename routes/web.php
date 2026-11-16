@@ -5,6 +5,8 @@ use App\Http\Controllers\Storefront\CategoryController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\HomeController;
 use App\Http\Controllers\Storefront\PageController;
+use App\Http\Controllers\Storefront\ProductController;
+use App\Http\Controllers\Storefront\SearchController;
 use App\Http\Controllers\Storefront\SellerController;
 use App\Http\Controllers\Storefront\SellerOnboardingController;
 use Illuminate\Support\Facades\Route;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 | آدرس‌های صفحه‌های مشتری (فروشگاه)
 |--------------------------------------------------------------------------
 | پنل مدیریت در /admin است و آدرس‌هایش را Filament خودش می‌سازد.
-| آدرس‌های جنس، جستجو و سبد در مرحله‌های ۳ و ۴ اضافه می‌شود.
+| سبد و سفارش در مرحله‌ی ۴ اضافه می‌شود.
 */
 
 Route::get('/', HomeController::class)->name('home');
@@ -23,7 +25,13 @@ Route::get('/page/{slug}', [PageController::class, 'show'])
     ->where('slug', '[^/]+')
     ->name('page.show');
 
-// دسته‌بندی کالاها
+// جنس و جستجو (آدرس جنس ممکن است حرف فارسی داشته باشد)
+Route::get('/p/{slug}', [ProductController::class, 'show'])
+    ->where('slug', '[^/]+')
+    ->name('product.show');
+Route::get('/search', SearchController::class)->middleware('throttle:storefront-search')->name('search');
+
+// دسته‌بندی اجناس
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])
     ->where('slug', '[^/]+')

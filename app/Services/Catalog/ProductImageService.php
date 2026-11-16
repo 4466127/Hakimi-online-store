@@ -93,7 +93,7 @@ class ProductImageService
     /** یک عکس را با همه‌ی نسخه‌هایش پاک می‌کند؛ اگر اصلی بود، بعدی اصلی می‌شود. */
     public function remove(ProductImage $image): void
     {
-        $product = $image->product;
+        $product = Product::withTrashed()->find($image->product_id);
         $files = $image->files();
         $image->delete();
 

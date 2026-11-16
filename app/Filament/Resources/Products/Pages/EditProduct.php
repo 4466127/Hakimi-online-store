@@ -25,7 +25,8 @@ class EditProduct extends EditRecord
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->color('gray')
                 ->url(fn (): string => $this->getRecord()->url(), shouldOpenInNewTab: true)
-                ->visible(fn (): bool => $this->getRecord()->isActive()),
+                // جنس پیش‌نویس و غیرفعال را فقط مدیر پنل می‌بیند (پیش‌نمایش)
+                ->visible(fn (): bool => ! $this->getRecord()->trashed()),
             DeleteAction::make(),
             RestoreAction::make(),
         ];

@@ -5,18 +5,27 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Services\Catalog\ProductCatalog;
 use App\Services\CategoryMenu;
 use App\Services\StoreInfo;
 use Illuminate\Contracts\View\View;
 
 /**
  * صفحه‌ی اصلی فروشگاه.
- * (مرحله‌ی ۲: معرفی و «به‌زودی»؛ مرحله‌ی ۳: بنرها، دسته‌ها و اجناس.)
+ * معرفی، دسته‌ها، «پیشنهاد ویژه» و «تازه‌ترین‌ها». (بنرها در ۳-۴.)
  */
 class HomeController extends Controller
 {
-    public function __invoke(StoreInfo $store, CategoryMenu $menu): View
+    public function __invoke(StoreInfo $store, CategoryMenu $menu, ProductCatalog $catalog): View
     {
-        return view('storefront.home', ['store' => $store, 'categories' => $menu->tree()]);
+        $featured = $catalog->home(true);
+
+        return view('storefront.home', [
+            'store' => $store,
+            'categories' => $menu->tree(),
+            'featured' => $featured,
+            // تازه‌ها: همانی که در «ویژه» آمده تکرار نشود
+            'latest' => $catalog->home(false, 8 + $featured->count())->reject(fn ($p) => $featured->contains('id', $p->id))->take(8)->values(),
+        ]);
     }
 }

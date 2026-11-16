@@ -7,6 +7,7 @@
 @source '../views/storefront/**/*.blade.php';
 @source '../views/components/**/*.blade.php';
 @source '../views/errors/**/*.blade.php';
+@source '../views/vendor/pagination/*.blade.php';
 @source '../js/**/*.js';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 

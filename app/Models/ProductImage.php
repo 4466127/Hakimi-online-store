@@ -85,10 +85,11 @@ class ProductImage extends Model
         return array_values(array_unique([...array_values($this->sizes ?? []), $this->path]));
     }
 
-    public function altText(): string
+    /** متن توضیح عکس؛ اگر نوشته نشده، $fallback (معمولاً نام جنس). بی بارگذاری رابطه (جلوی N+1). */
+    public function altText(string $fallback = ''): string
     {
         $alt = $this->tr('alt');
 
-        return $alt !== '' ? $alt : $this->product?->tr('name') ?? '';
+        return $alt !== '' ? $alt : $fallback;
     }
 }

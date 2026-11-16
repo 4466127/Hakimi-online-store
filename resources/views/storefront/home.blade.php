@@ -1,6 +1,6 @@
 {{--
-    صفحه‌ی اصلی — نسخه‌ی مرحله‌ی ۲ (پیش از کاتالوگ): معرفی فروشگاه، دسته‌های اصلی، تحویل، اعتماد.
-    در مرحله‌ی ۳ بنرها، دسته‌ها و اجناس واقعی از دیتابیس جای این بخش‌ها را می‌گیرد.
+    صفحه‌ی اصلی: معرفی فروشگاه، دسته‌های اصلی، پیشنهاد ویژه و تازه‌ترین اجناس، تحویل، اعتماد.
+    بنرها در مرحله‌ی ۳-۴ می‌آید.
 --}}
 @extends('storefront.layouts.app')
 
@@ -94,6 +94,25 @@
             </ul>
         </section>
     @endif
+
+    {{-- پیشنهاد ویژه و تازه‌ترین اجناس (فقط وقتی جنس فعال هست) --}}
+    @foreach ([['items' => $featured, 'heading' => 'store.home.featured_heading'], ['items' => $latest, 'heading' => 'store.home.latest_heading']] as $row)
+        @if ($row['items']->isNotEmpty())
+            <section class="container-page mt-8">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2 class="text-lg font-bold text-gray-900">{{ __($row['heading']) }}</h2>
+                    <a href="{{ route('search') }}" class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-brand-700">
+                        {{ __('store.home.see_all') }} @svg('heroicon-m-chevron-left', 'size-4')
+                    </a>
+                </div>
+                <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                    @foreach ($row['items'] as $product)
+                        <li><x-storefront.product-card :product="$product" /></li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+    @endforeach
 
     {{-- در بازارک بفروشید --}}
     <section class="container-page mt-8">

@@ -14,6 +14,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -42,6 +43,12 @@ class AppServiceProvider extends ServiceProvider
 
         // ورود و ثبت‌نام مشتری: حداکثر ۱۰ درخواست در دقیقه از یک IP
         RateLimiter::for('customer-auth', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+
+        // جستجو: ۶۰ بار در دقیقه از یک IP (جلوی فشار آوردن به دیتابیس)
+        RateLimiter::for('storefront-search', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
+
+        // صفحه‌بندی فارسی و سبک برای سایت مشتری (پنل مدیریت صفحه‌بندی خودش را دارد)
+        Paginator::defaultView('vendor.pagination.bazarak');
 
         $this->registerAdminLoginGuards();
     }

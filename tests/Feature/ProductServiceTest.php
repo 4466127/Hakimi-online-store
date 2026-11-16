@@ -340,7 +340,8 @@ class ProductServiceTest extends TestCase
             Storage::disk('public')->assertExists($file);
         }
         $this->assertStringContainsString('300w', $first->srcset());
-        $this->assertSame('عکس دوم', $second->altText());
+        $this->assertSame('عکس دوم', $second->altText('نام جنس'));
+        $this->assertSame('نام جنس', $first->altText('نام جنس'));
         $this->assertSame($first->id, $product->fresh()->primaryImage()->id);
 
         $images->remove($first);

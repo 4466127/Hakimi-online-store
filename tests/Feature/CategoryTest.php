@@ -110,7 +110,7 @@ class CategoryTest extends TestCase
         $this->get('/category/chargers')->assertOk()
             ->assertSee('موبایل')          // مسیر صفحه
             ->assertSee('لوازم جانبی')
-            ->assertSee(__('store.categories.products_soon_heading'));
+            ->assertSee(__('store.categories.products_empty_heading'));
 
         $this->get('/category/mobile')->assertOk()->assertSee('لوازم جانبی');
     }
