@@ -1,0 +1,140 @@
+/*
+ | ظاهر صفحه‌های مشتری (فروشگاه). Tailwind CSS 4.
+ | همه‌چیز از خود سرور می‌آید: هیچ فونت یا فایل بیرونی (انترنت ضعیف).
+ */
+@import 'tailwindcss';
+
+@source '../views/storefront/**/*.blade.php';
+@source '../views/components/**/*.blade.php';
+@source '../views/errors/**/*.blade.php';
+@source '../js/**/*.js';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+/* فونت Vazirmatn از پوشه‌ی public/fonts (همان فایل‌ها را پنل مدیریت هم استفاده می‌کند) */
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/vazirmatn/Vazirmatn-Bold.woff2') format('woff2');
+}
+
+/*
+ | رنگ‌های برند. برای عوض کردن رنگ کل سایت فقط همین‌جا را عوض کنید:
+ | brand = رنگ اصلی (دکمه‌ها، لینک‌ها)، accent = رنگ تأکید (تخفیف، نشان‌ها).
+ */
+@theme {
+    --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
+
+    --color-brand-50: var(--color-emerald-50);
+    --color-brand-100: var(--color-emerald-100);
+    --color-brand-200: var(--color-emerald-200);
+    --color-brand-500: var(--color-emerald-500);
+    --color-brand-600: var(--color-emerald-600);
+    --color-brand-700: var(--color-emerald-700);
+    --color-brand-800: var(--color-emerald-800);
+    --color-brand-900: var(--color-emerald-900);
+
+    --color-accent-50: var(--color-orange-50);
+    --color-accent-100: var(--color-orange-100);
+    --color-accent-500: var(--color-orange-500);
+    --color-accent-600: var(--color-orange-600);
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-gray-50 font-sans text-gray-800 antialiased;
+    }
+
+    /* حلقه‌ی واضح دور چیزی که با کیبورد انتخاب شده (دسترس‌پذیری) */
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand-600;
+    }
+
+    /* تا Alpine آماده نشده، چیزهای پنهان دیده نشود */
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    /* محفظه‌ی اصلی صفحه */
+    .container-page {
+        @apply mx-auto w-full max-w-6xl px-4;
+    }
+
+    /* دکمه‌ها: اندازه‌ی لمس حداقل ۴۴ پیکسل */
+    .btn {
+        @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-medium transition-colors;
+    }
+
+    .btn-primary {
+        @apply bg-brand-600 text-white hover:bg-brand-700;
+    }
+
+    .btn-whatsapp {
+        @apply bg-green-500 text-white hover:bg-green-600;
+    }
+
+    .btn-outline {
+        @apply border border-gray-300 bg-white text-gray-700 hover:bg-gray-50;
+    }
+
+    .card {
+        @apply rounded-2xl border border-gray-200 bg-white;
+    }
+
+    /* متن صفحه‌های ثابت که مدیر در ویرایشگر می‌نویسد */
+    .prose-page {
+        @apply leading-8 text-gray-700;
+    }
+
+    .prose-page h2 {
+        @apply mt-8 mb-3 text-xl font-bold text-gray-900;
+    }
+
+    .prose-page h3 {
+        @apply mt-6 mb-2 text-lg font-bold text-gray-900;
+    }
+
+    .prose-page p {
+        @apply mb-4;
+    }
+
+    .prose-page ul {
+        @apply mb-4 list-disc ps-6;
+    }
+
+    .prose-page ol {
+        @apply mb-4 list-decimal ps-6;
+    }
+
+    .prose-page a {
+        @apply text-brand-700 underline;
+    }
+
+    .prose-page blockquote {
+        @apply my-4 border-s-4 border-brand-200 ps-4 text-gray-600;
+    }
+}
