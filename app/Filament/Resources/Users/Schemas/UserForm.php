@@ -61,10 +61,14 @@ class UserForm
                             ->default(UserRole::Staff->value)
                             ->required()
                             ->live()
-                            ->helperText(function ($state): string {
+                            ->helperText(function ($state, ?User $record): string {
                                 $role = $state instanceof UserRole ? $state : UserRole::tryFrom((string) $state);
+                                $text = $role ? $role->description() : (string) __('admin.users.role_help');
 
-                                return $role ? $role->description() : (string) __('admin.users.role_help');
+                                // چرا خانه قفل است (تا مدیر فکر نکند فقط یک نقش وجود دارد)
+                                return $record !== null && UserPolicy::isLastActiveOwner($record)
+                                    ? $text.' '.__('admin.users.role_locked')
+                                    : $text;
                             })
                             // نقش آخرین صاحب فروشگاه عوض نمی‌شود، وگرنه هیچ‌کس به «کاربران» دسترسی ندارد
                             ->disabled(fn (?User $record): bool => $record !== null && UserPolicy::isLastActiveOwner($record)),

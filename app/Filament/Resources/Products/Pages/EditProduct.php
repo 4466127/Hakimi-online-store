@@ -52,14 +52,9 @@ class EditProduct extends EditRecord
         return (string) __('admin.products.saved');
     }
 
-    /** بعد از ذخیره در همین صفحه می‌ماند (لیست عکس و نوع‌ها تازه شود). */
-    protected function getRedirectUrl(): ?string
+    /** بعد از ذخیره‌ی ویرایش، برگشت به لیست اجناس. */
+    protected function getRedirectUrl(): string
     {
-        return null;
-    }
-
-    protected function afterSave(): void
-    {
-        $this->fillForm();
+        return ProductResource::getUrl('index');
     }
 }

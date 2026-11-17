@@ -60,16 +60,22 @@ class ProductImage extends Model
         return $widths;
     }
 
-    /** آدرس کوچک‌ترین نسخه‌ای که حداقل $width پهنا دارد (اگر نبود، بزرگ‌ترین). */
-    public function url(int $width = 600): string
+    /** مسیر (روی دیسک public) کوچک‌ترین نسخه‌ای که حداقل $width پهنا دارد (اگر نبود، بزرگ‌ترین). */
+    public function pathFor(int $width = 600): string
     {
         $widths = $this->widths();
         if ($widths === []) {
-            return Storage::disk('public')->url($this->path);
+            return $this->path;
         }
         $chosen = collect($widths)->first(fn (int $w) => $w >= $width) ?? end($widths);
 
-        return Storage::disk('public')->url($this->sizes[(string) $chosen] ?? $this->sizes[$chosen] ?? $this->path);
+        return $this->sizes[(string) $chosen] ?? $this->sizes[$chosen] ?? $this->path;
+    }
+
+    /** آدرس کوچک‌ترین نسخه‌ای که حداقل $width پهنا دارد (اگر نبود، بزرگ‌ترین). */
+    public function url(int $width = 600): string
+    {
+        return Storage::disk('public')->url($this->pathFor($width));
     }
 
     /** مقدار srcset: «…-300.webp 300w, …-600.webp 600w». */

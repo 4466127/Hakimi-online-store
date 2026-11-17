@@ -6,6 +6,9 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductFormData;
 use App\Filament\Resources\Products\ProductResource;
+use App\Models\Product;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,13 +22,28 @@ class CreateProduct extends CreateRecord
         return ProductFormData::persist(null, $data);
     }
 
-    protected function getCreatedNotificationTitle(): ?string
+    /** سبز «جنس ذخیره شد» با نام جنس؛ دکمه‌ی ویرایش برای وقتی که خواست همان جنس را دوباره باز کند. */
+    protected function getCreatedNotification(): ?Notification
     {
-        return (string) __('admin.products.saved');
+        /** @var Product $product */
+        $product = $this->getRecord();
+
+        return Notification::make()
+            ->success()
+            ->title((string) __('admin.products.saved'))
+            ->body($product->tr('name').' — '.__('admin.products.saved_next'))
+            ->actions([
+                Action::make('edit')
+                    ->label((string) __('admin.products.edit_saved'))
+                    ->button()
+                    ->color('gray')
+                    ->url(ProductResource::getUrl('edit', ['record' => $product])),
+            ]);
     }
 
+    /** بعد از ذخیره‌ی موفق، فورم خالیِ جنس بعدی (مدیر اجناس را پشت سر هم درج می‌کند). */
     protected function getRedirectUrl(): string
     {
-        return ProductResource::getUrl('edit', ['record' => $this->getRecord()]);
+        return ProductResource::getUrl('create');
     }
 }

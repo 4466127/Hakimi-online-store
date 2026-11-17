@@ -86,12 +86,14 @@ class ProductFormData
             AdminNotify::validationFailed($e);
 
             throw ValidationException::withMessages(self::prefixed($e->errors(), array_keys((array) ($data['variants'] ?? []))));
-        } finally {
-            // فایل‌های موقت بارگذاری هر طور شد پاک شود
-            foreach ((array) ($data['new_images'] ?? []) as $relative) {
-                if (is_string($relative)) {
-                    Storage::disk('local')->delete($relative);
-                }
+        }
+
+        // فایل‌های موقت فقط بعد از ذخیره‌ی موفق پاک می‌شود. اگر ذخیره خطا داد، فورم هنوز همین فایل‌ها را نگه
+        // داشته و مدیر بعد از اصلاح خطا دوباره «ذخیره» می‌زند؛ پاک‌شدنشان یعنی دوباره بارگذاری عکس.
+        // فایل‌های رهاشده را `uploads:prune-temp` (روزانه) پاک می‌کند.
+        foreach ((array) ($data['new_images'] ?? []) as $relative) {
+            if (is_string($relative)) {
+                Storage::disk('local')->delete($relative);
             }
         }
 

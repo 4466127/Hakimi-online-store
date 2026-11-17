@@ -35,9 +35,11 @@ class ProductsTable
             ->description(__('admin.products.help'))
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['category', 'brand', 'seller', 'images'])->withCount('variants'))
             ->columns([
+                // مسیر روی دیسک public می‌گیرد (نه آدرس کامل)؛ با آدرس «/storage/…» دوباره پیشوند می‌خورد و عکس نمی‌آمد
                 ImageColumn::make('image')
                     ->label('')
-                    ->state(fn (Product $record): ?string => $record->primaryImage()?->url(300))
+                    ->disk('public')
+                    ->state(fn (Product $record): ?string => $record->primaryImage()?->pathFor(300))
                     ->square()
                     ->imageSize(48),
                 TextColumn::make('name')

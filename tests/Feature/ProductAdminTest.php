@@ -13,6 +13,7 @@ use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Catalog\ProductImageService;
 use App\Services\Catalog\ProductService;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -149,6 +150,110 @@ class ProductAdminTest extends TestCase
         // در تاریخچه ثبت شد، ولی cache و ستون‌های داخلی نه
         $log = ActivityLog::query()->where('action', 'product.created')->first();
         $this->assertNotNull($log);
+    }
+
+    /** @return array<string, mixed> */
+    private function validCreateData(): array
+    {
+        return [
+            'name' => ['fa' => 'بوت چرمی'],
+            'category_id' => $this->shoes->id,
+            'status' => 'active',
+            'variants' => [
+                ['price' => '2500', 'stock_qty' => '4', 'is_active' => true, 'option_ids' => [$this->opt['s42']]],
+            ],
+        ];
+    }
+
+    public function test_after_creating_a_product_the_admin_lands_on_a_fresh_create_form(): void
+    {
+        Livewire::test(CreateProduct::class)
+            ->fillForm($this->validCreateData())
+            ->call('create')
+            ->assertHasNoFormErrors()
+            ->assertRedirect('/admin/products/create')
+            ->assertNotified('جنس ذخیره شد');
+    }
+
+    public function test_after_editing_a_product_the_admin_returns_to_the_list(): void
+    {
+        $product = Product::factory()->withVariant()->create();
+
+        Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()])
+            ->call('save')
+            ->assertHasNoFormErrors()
+            ->assertRedirect('/admin/products');
+    }
+
+    /** خطای قاعده‌های جنس (ترکیب تکراری) عکس‌های بارگذاری‌شده را از بین نمی‌برد؛ بعد از اصلاح همان‌ها ذخیره می‌شود. */
+    public function test_uploaded_images_survive_a_service_error_and_are_saved_on_retry(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+        $upload = UploadedFile::fake()->image('boot.jpg', 900, 700);
+        Storage::disk('local')->put('tmp/product-uploads/boot.jpg', (string) file_get_contents($upload->getRealPath()));
+
+        $bad = $this->validCreateData();
+        $bad['variants'][] = ['price' => '200', 'stock_qty' => '1', 'is_active' => true, 'option_ids' => [$this->opt['s42']]];   // ترکیب تکراری
+        $bad['new_images'] = ['tmp/product-uploads/boot.jpg'];
+
+        $component = Livewire::test(CreateProduct::class)->fillForm($bad)->call('create');
+
+        $this->assertSame(0, Product::query()->count());
+        $this->assertNotEmpty($component->errors()->toArray());
+        Storage::disk('local')->assertExists('tmp/product-uploads/boot.jpg');
+        $this->assertSame(['tmp/product-uploads/boot.jpg'], array_values($component->get('data.new_images')));
+
+        // مدیر ترکیب تکراری را برمی‌دارد و دوباره ذخیره می‌زند، بدون بارگذاری دوباره‌ی عکس
+        $component->fillForm(['variants' => $this->validCreateData()['variants']])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(1, Product::query()->firstOrFail()->images()->count());
+        Storage::disk('local')->assertMissing('tmp/product-uploads/boot.jpg');
+    }
+
+    /** نسخه‌ی کوچک عکس اصلی در لیست اجناس با آدرس درست دیسک public می‌آید (نه «/storage//storage/…»). */
+    public function test_list_shows_the_primary_image_thumbnail_with_a_valid_url(): void
+    {
+        Storage::fake('public');
+        $product = app(ProductService::class)->save(null, [
+            'category_id' => $this->shoes->id, 'name' => ['fa' => 'بوت عکس‌دار'], 'status' => 'active',
+            'variants' => [['price' => 100, 'stock_qty' => 1, 'option_ids' => [$this->opt['s40']]]],
+        ]);
+        $file = UploadedFile::fake()->image('a.jpg', 900, 700);
+        $image = app(ProductImageService::class)->add($product, $file->getRealPath());
+
+        $thumb = Storage::disk('public')->url($image->pathFor(300));
+
+        $this->assertStringNotContainsString('/storage//storage', $thumb);
+        $this->assertStringEndsWith('-300.webp', $image->pathFor(300));
+        Livewire::test(ListProducts::class)
+            ->assertCanSeeTableRecords([$product])
+            ->assertSeeHtml($thumb);
+    }
+
+    public function test_the_last_owner_role_field_explains_why_it_is_locked(): void
+    {
+        $owner = User::query()->firstOrFail();
+        $this->assertSame(UserRole::Owner, $owner->role);
+
+        $this->get('/admin/users/'.$owner->getRouteKey().'/edit')
+            ->assertOk()
+            ->assertSee('تنها صاحب فعال فروشگاه');
+    }
+
+    public function test_prune_command_removes_only_old_temp_uploads(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('tmp/product-uploads/old.jpg', 'x');
+        Storage::disk('local')->put('tmp/product-uploads/new.jpg', 'y');
+        touch(Storage::disk('local')->path('tmp/product-uploads/old.jpg'), now()->subDays(5)->getTimestamp());
+
+        $this->artisan('uploads:prune-temp')->assertSuccessful();
+
+        Storage::disk('local')->assertMissing('tmp/product-uploads/old.jpg');
+        Storage::disk('local')->assertExists('tmp/product-uploads/new.jpg');
     }
 
     public function test_new_product_form_has_no_empty_image_row(): void
