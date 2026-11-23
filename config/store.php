@@ -12,6 +12,11 @@ use App\Services\Payments\Gateways\LogGateway;
 
 return [
 
+    // بنرهای صفحه‌ی اصلی: هر چند میلی‌ثانیه بنر بعدی (خواست صاحب پروژه: ۱٫۵ ثانیه، حلقوی)
+    'home' => [
+        'banner_interval_ms' => (int) env('BANNER_INTERVAL_MS', 1500),
+    ],
+
     // زمان‌ها در دیتابیس UTC ذخیره می‌شود و به وقت کابل نشان داده می‌شود.
     'timezone' => env('STORE_TIMEZONE', 'Asia/Kabul'),
 

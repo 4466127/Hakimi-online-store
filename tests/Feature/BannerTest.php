@@ -37,7 +37,7 @@ class BannerTest extends TestCase
         return Banner::query()->create($attributes + ['image_path' => $path, 'position' => 1, 'is_active' => true]);
     }
 
-    public function test_home_shows_only_active_banners_in_display_order_without_auto_rotation(): void
+    public function test_home_shows_only_active_banners_in_display_order_and_rotates_them(): void
     {
         $this->banner(['title' => ['fa' => 'بنر دوم'], 'position' => 2, 'link_url' => '/category/boot']);
         $this->banner(['title' => ['fa' => 'بنر اول'], 'position' => 1]);
@@ -49,9 +49,11 @@ class BannerTest extends TestCase
         $this->assertStringContainsString('href="/category/boot"', $html);
         $this->assertStringNotContainsString('بنر خاموش', $html);
         $this->assertLessThan(strpos($html, 'alt="بنر دوم"'), strpos($html, 'alt="بنر اول"'));
-        $this->assertStringContainsString('snap-x', $html);                 // ورق زدن دستی
-        $this->assertStringNotContainsString('setInterval', $html);         // بی چرخش خودکار
-        $this->assertStringNotContainsString('autoplay', $html);
+        $this->assertStringContainsString('snap-x', $html);                 // ورق زدن دستی هم هست
+        $this->assertStringContainsString('setInterval', $html);            // چرخش خودکار
+        $this->assertStringContainsString('interval: 1500', $html);         // هر ۱٫۵ ثانیه
+        $this->assertStringContainsString('% this.count', $html);           // حلقوی: بعد از آخری، اولی
+        $this->assertStringContainsString('prefers-reduced-motion', $html); // «حرکت کمتر» دستگاه رعایت می‌شود
     }
 
     public function test_home_without_banners_has_no_banner_area(): void

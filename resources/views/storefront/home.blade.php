@@ -1,6 +1,8 @@
 {{--
     صفحه‌ی اصلی: معرفی فروشگاه، دسته‌های اصلی، پیشنهاد ویژه و تازه‌ترین اجناس، تحویل، اعتماد.
-    بنرها (مرحله‌ی ۹-۴): حداکثر ۵، بی چرخش خودکار و بی حرکت اضافه؛ مشتری با انگشت یا دکمه ورق می‌زند.
+    بنرها (مرحله‌ی ۹-۴): حداکثر ۵. به خواست صاحب پروژه (۲ قوس ۱۴۰۵) خودکار و حلقوی عوض می‌شوند
+    (فاصله: config('store.home.banner_interval_ms')). وقتی مشتری دست می‌زند، موس رویش است، صفحه پنهان است
+    یا در تنظیم دستگاه «حرکت کمتر» را خواسته، نمی‌چرخد. ورق زدن دستی هم کار می‌کند.
 --}}
 @extends('storefront.layouts.app')
 
@@ -19,10 +21,30 @@
         ];
     @endphp
 
-    {{-- بنرها: ورق زدن دستی (scroll-snap)؛ دکمه‌ها فقط یک صفحه جابه‌جا می‌کنند، بی انیمیشن --}}
+    {{-- بنرها: چرخش خودکار حلقوی + ورق زدن دستی (scroll-snap) و دکمه‌ها --}}
     @if ($banners->isNotEmpty())
         <section class="container-page mt-4 md:mt-6" aria-label="{{ __('store.home.banners_label') }}"
-                 x-data="{ go(step) { const t = this.$refs.track; const dir = getComputedStyle(t).direction === 'rtl' ? -1 : 1; t.scrollBy({ left: step * dir * t.clientWidth, behavior: 'auto' }); } }">
+                 x-data="{
+                     count: {{ $banners->count() }},
+                     interval: {{ (int) config('store.home.banner_interval_ms', 1500) }},
+                     paused: false,
+                     timer: null,
+                     index() { const t = this.$refs.track; return Math.round(Math.abs(t.scrollLeft) / Math.max(1, t.clientWidth)); },
+                     go(step) {
+                         const t = this.$refs.track;
+                         const dir = getComputedStyle(t).direction === 'rtl' ? -1 : 1;
+                         const next = (this.index() + step + this.count) % this.count;
+                         t.scrollTo({ left: next * dir * t.clientWidth, behavior: 'smooth' });
+                     },
+                     start() {
+                         if (this.count < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
+                         this.timer = setInterval(() => { if (! this.paused && ! document.hidden) { this.go(1); } }, this.interval);
+                     },
+                 }"
+                 x-init="start()"
+                 x-on:mouseenter="paused = true" x-on:mouseleave="paused = false"
+                 x-on:touchstart.passive="paused = true" x-on:touchend.passive="setTimeout(() => paused = false, 3000)"
+                 x-on:focusin="paused = true" x-on:focusout="paused = false">
             <div class="relative">
                 <div x-ref="track" class="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" tabindex="0">
                     @foreach ($banners as $banner)
