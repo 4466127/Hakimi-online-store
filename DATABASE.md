@@ -372,7 +372,9 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 #### `stock_movements` — دفتر حرکت موجودی آنلاین
 `id`، `variant_id` FK، `type` VARCHAR(15) (`adjust`/`reserve`/`release`/`sale`/`return`)، `qty_delta` DECIMAL(12,3)، `stock_after`، `reserved_after`، `reference_type` VARCHAR(30) NULL، `reference_id` BIGINT NULL، `user_id` FK NULL، `note` NULL، `created_at`. Index (`variant_id`, `created_at`).
 
-### چ-۲) طرح v2 — سفارش چندفروشنده، پرداخت، بازپرداخت (پیشنهادی؛ **migrate نشده**)
+### چ-۲) طرح v2 — سفارش چندفروشنده، پرداخت، بازپرداخت (**تأیید شد ۲ قوس ۱۴۰۵**؛ بخش اول migrate شد)
+
+> **وضعیت migrate:** `orders`، `seller_orders` (با ستون‌های صورت مالی)، `order_items` (با کپی کمیسیون؛ بی `commission_rule_id` FK)، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` ← **ساخته شد** (`2026_11_22_000100/000200`). ستون‌های ساخته‌نشده‌ی این بخش (کوپن/UTM/آدرس صورتحساب در `orders`، `exchange_rate`) و جدول‌های `payment_events`، `payment_allocations`، `commission_rules`، `seller_settlement_items`، `refunds`، `refund_items`، `order_returns*`، ستون‌های تازه‌ی `seller_transactions`/`seller_settlements`/`sellers` و `activity_log.reason` و نقش `courier` ← **بعداً** در مرحله‌ی خودشان.
 
 قاعده‌ها: پول `DECIMAL(12,2)`؛ تعداد `UNSIGNED INT`؛ UUID برای سفارش، سفارش فروشنده، پرداخت، بازپرداخت؛ همه InnoDB؛ ردیف‌های مالی ویرایش و حذف ندارند (فقط سند معکوس).
 
@@ -414,14 +416,14 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 `id`، `subject_type` (`order/seller_order/payment/refund/return`)، `subject_id`، `from_status`، `to_status`، `user_id` NULL (خالی = مشتری/سیستم)، `note`، `created_at`. Index (`subject_type`,`subject_id`,`created_at`).
 
 #### `payment_methods` (تغییر)
-`code` یکتا، `name/description/instructions` JSON، `type` (`cod/cash_point/manual_transfer/gateway`)، `driver` NULL، **`audience`** JSON (`["domestic"]`/`["international"]`/هر دو)، `fee`، `min_total/max_total`، `config` JSON NULL (غیرمحرمانه؛ کلید فقط `.env`)، `is_active`، `position`.
+`code` یکتا (**MVP: فقط `cod`، `cash_point`، `hesabpay`**؛ `manual_transfer` و `hesabpay_intl` طبق تصمیم ۱ قوس ۱۴۰۵ ساخته نمی‌شود)، `name/description/instructions` JSON، `type` (`cod/cash_point/gateway`؛ مقدار `manual_transfer` فقط اگر روزی تصمیم تازه شد)، `driver` NULL، **`audience`** JSON (`["domestic"]`/`["international"]`/هر دو)، `fee`، `min_total/max_total`، `config` JSON NULL (غیرمحرمانه؛ کلید فقط `.env`)، `is_active`، `position`.
 
 #### `payments` — هر تلاش یا دریافت پول
 | ستون | توضیح |
 |---|---|
 | id, uuid | |
 | order_id FK، seller_order_id FK NULL | خالی = کل سفارش (حالت یکپارچه) |
-| method_code, provider NULL | `cod/cash_point/manual_transfer/hesabpay` |
+| method_code, provider NULL | `cod/cash_point/hesabpay` |
 | amount, fee_amount, currency_code | مبلغ مورد انتظار؛ کارمزد درگاه (از جواب درگاه) |
 | status | `awaiting_collection/pending/paid/failed/refunded/partially_refunded` |
 | failed_reason | `declined/expired/cancelled/mismatch/…` |
@@ -429,16 +431,17 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 | provider_reference | NULL؛ **UNIQUE** با `provider` |
 | attempt_no, expires_at, paid_at | |
 | amount_received | پول نقدِ واقعی گرفته‌شده |
-| collected_by FK users NULL، collection_point_id FK NULL، collected_at | چه کسی، کجا، کی (تاریخ و ساعت) |
+| collected_by FK users NULL، collected_at_type (`door`/`point`)، collection_point_id FK NULL، collected_at | چه کسی، کجا (دم در توسط پیک / نمایندگی)، کی (تاریخ و ساعت) |
+| courier_cash_status | `held_by_courier`/`handed_over` NULL (پولِ دست پیک تا تحویل به صندوق)؛ `handed_over_to`، `handed_over_at` |
 | receipt_number | **UNIQUE** NULL (`RC-…`) |
-| payer_name, transfer_reference, receipt_path | حواله/رسید |
+| payer_name, transfer_reference, receipt_path | حواله/رسید (**MVP ساخته نمی‌شود**؛ تصمیم ۱ قوس ۱۴۰۵) |
 | note، timestamps | |
 
 #### `payment_events` — رویدادهای درگاه و دستی (فقط افزودن)
 `id`، `payment_id` FK NULL، `provider`، `event_id` (**UNIQUE** با provider)، `type`، `payload` JSON (بی هدر کلید و بی داده‌ی کارت)، `signature_valid` BOOL، `processed_at` NULL، `error` NULL، `created_at`.
 
-#### `collection_points` — نقطه‌های دریافت نقد (آینده)
-`id`، `name` JSON، `type` (`office/agent`)، `province_id`، `city`، `address`، `phone`، `hours` JSON، `instructions` JSON، `user_id` FK NULL (مسئول)، `is_active`، `position`. فعلاً فقط «دفتر مرکزی» از تنظیمات.
+#### `collection_points` — نمایندگی‌ها / نقطه‌های دریافت نقد و تحویل حضوری
+`id`، `name` JSON، `type` (`office/agent`)، `province_id`، `city`، `address`، `phone`، `hours` JSON، `instructions` JSON، `user_id` FK NULL (مسئول)، `is_active`، `position`. از پنل ساخته می‌شود؛ «دفتر مرکزی» اولین ردیف است. (تصمیم ۱ قوس ۱۴۰۵: نمایندگی‌ها از همان اول؛ نه فقط دفتر مرکزی.)
 
 #### `refunds` — بازپرداخت پول
 `id`، `uuid`، `order_id`، `payment_id`، `seller_order_id` NULL، `amount`، `reason`، `status` (`requested/approved/processing/completed/failed/rejected`)، `method` (`manual/gateway`)، `provider_reference` NULL، `requested_by`، `approved_by`، `completed_at`، `note`. **`completed` فقط بعد از تأیید واقعی.**

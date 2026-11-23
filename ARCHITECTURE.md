@@ -318,8 +318,14 @@ hakimi-online-store/
 - بعداً با زیاد شدن مشتری: قرارداد با شرکت‌های پیک.
 - مثل دیجی‌کالا **کرایه‌ی تحویل جدا** از مشتری گرفته می‌شود (مرحله‌ی ۵: کرایه‌ی هر ولایت/منطقه) و در حساب کمیسیون نمی‌آید.
 
-### ۷-۱۷. معماری سفارش، پرداخت و مالی نسخه‌ی ۲ (پیشنهادی، ۱ قوس ۱۴۰۵، منتظر تأیید)
+### ۷-۱۷. معماری سفارش، پرداخت و مالی نسخه‌ی ۲ (**تأیید شد ۲ قوس ۱۴۰۵**؛ هسته‌ی ۲-۱ ساخته شد)
 سند تصمیم‌ها: `docs/ASSESSMENT_AND_PLAN.md`. جدول‌ها: `DATABASE.md` بخش چ-۲.
+
+**ساخته‌شده (۲ قوس ۱۴۰۵، مرحله‌ی ۲-۱):** جدول‌های `orders`، `seller_orders`، `order_items`، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` (migration `2026_11_22_000100/000200`)؛ در `app/Services/Orders/`:
+- `CheckoutService::place(Cart, CheckoutData)`: یک transaction با قفل ردیف نوع‌ها (ترتیب شناسه)؛ قیمت، کرایه (`DeliveryCalculator`) و جمع در سرور؛ گروه‌بندی خط‌ها بر پایه‌ی فروشنده (`seller_id` خالی = خود بازارک) ← یک `seller_orders` برای هر گروه با صورت مالی (`gross_subtotal`، `commission_total`، `seller_payable`، …)؛ **قاعده‌ی کمیسیون روی هر `order_items` کپی و ثابت** (`commission_rate`، `rate_source`، `commission_amount`، `seller_amount`؛ فعلاً از `CommissionService::rateFor`، ترتیب مرحله‌ی ۴ عوض می‌شود)؛ رزرو موجودی با `StockLedger`؛ یک `payments` با وضعیت `awaiting_collection`؛ سبد خالی. روش‌ها: فقط نقد (`cod` با تحویل درِ خانه، `cash_point` با تحویل حضوری)؛ درگاه آنلاین مرحله‌ی ۵. خطا ← `CheckoutException` (کد `checkout.*`) و هیچ ردیفی ساخته نمی‌شود.
+- `OrderStateMachine::transition(SellerOrder, to, ?User, ?note)`: تنها راه تغییر وضعیت؛ گذارهای مجاز در `TRANSITIONS`؛ قفل والد ← فروشنده؛ لغو (دلیل لازم) رزرو را آزاد می‌کند و اگر همه‌ی فروشنده‌ها لغو شدند والد لغو و پرداخت منتظر `failed(cancelled)` می‌شود؛ تحویل موجودی را کم می‌کند؛ وضعیت والد = عقب‌مانده‌ترین فروشنده‌ی غیرلغو؛ لغو یک فروشنده جمع والد و مبلغ منتظر گرفتن را کم می‌کند (فقط اگر هنوز پولی نیامده)؛ تاریخچه (`order_status_history`) و `activity_log`.
+- `StockLedger`: reserve / release / sell با `lockForUpdate` و دفتر `stock_movements` و تازه‌سازی cache جنس.
+- **تصمیم‌های ۲ قوس ۱۴۰۵:** پیک هم هنگام تحویل پول را می‌گیرد؛ پرداخت حضوری در نمایندگی‌ها (جدول `collection_points`)؛ پرداخت آنلاین فقط حساب‌پی.
 
 - **رابطه‌ها:** مشتری (حساب یا مهمان) ← **سفارش** (`orders`: خریدار، گیرنده، جمع پول) ← **سفارش فروشنده** (`seller_orders`، یکی برای هر فروشنده؛ `seller_id` خالی = خود بازارک) ← **خط‌ها** (`order_items`). سفارش ← **پرداخت‌ها** (`payments` ← `payment_events`) ← **بازپرداخت‌ها** (`refunds`)؛ سفارش فروشنده ← **برگشت جنس** (`order_returns`). مالی: خط تحویل‌شده و پول‌رسیده ← `commission_entries` ← `seller_transactions` ← `seller_settlements`.
 - **خریدار ≠ گیرنده:** هر دو در سفارش ذخیره می‌شوند (بخش ۲ `docs/PAYMENTS_AND_CHECKOUT.md`). فروشنده هیچ‌کدام را نمی‌بیند (بازارک می‌رساند).
