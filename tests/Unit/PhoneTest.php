@@ -39,7 +39,8 @@ class PhoneTest extends TestCase
 
     public function test_display_and_links(): void
     {
-        $this->assertSame('۰۷۰۰ ۱۲۳ ۴۵۶', Phone::display('0700123456'));
+        // بین دو نشانه‌ی جداسازی چپ‌به‌راست، تا در صفحه‌ی راست‌چین رقم‌ها جابه‌جا نشوند
+        $this->assertSame("\u{2066}۰۷۰۰ ۱۲۳ ۴۵۶\u{2069}", Phone::display('0700123456'));
         $this->assertSame('نادرست', Phone::display('نادرست'));
         $this->assertSame('93700123456', Phone::international('0700123456'));
         $this->assertSame('tel:+93700123456', Phone::telLink('0700 123 456'));

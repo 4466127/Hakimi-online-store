@@ -36,6 +36,7 @@ class UsersTable
                         UserRole::Manager => 'info',
                         UserRole::Staff => 'warning',
                         UserRole::Editor => 'gray',
+                        UserRole::Courier => 'primary',
                     }),
                 IconColumn::make('is_active')
                     ->label(__('admin.users.is_active'))

@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
+use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,6 +57,36 @@ class UserManagementTest extends TestCase
             ActivityLog::query()->where('action', 'user.created')->where('subject_id', $user->id)
                 ->where('actor_id', $this->owner->id)->exists()
         );
+    }
+
+    /**
+     * خطای واقعی (۲ قوس ۱۴۰۵): کاربر «پیک» ساخته می‌شد ولی لیست کاربران خطا می‌داد،
+     * چون رنگ نشان نقش برای «پیک» تعریف نشده بود. هر نقش باید در لیست نشان داده شود.
+     */
+    public function test_every_role_including_courier_can_be_created_and_listed(): void
+    {
+        Livewire::test(CreateUser::class)
+            ->fillForm([
+                'name' => 'پیک آزمایشی',
+                'phone' => '0799333444',
+                'role' => UserRole::Courier->value,
+                'is_active' => true,
+                'password' => 'first-pass-1',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(UserRole::Courier, User::query()->where('phone', '0799333444')->value('role'));
+
+        foreach (UserRole::cases() as $i => $role) {
+            User::factory()->create(['role' => $role, 'phone' => '07981000'.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
+        }
+
+        Livewire::test(ListUsers::class)
+            ->assertOk()
+            ->assertSee(UserRole::Courier->label())
+            // شماره با نشانه‌ی جداسازی چپ‌به‌راست، تا در صفحه‌ی راست‌چین جابه‌جا نشود
+            ->assertSeeHtml("\u{2066}۰۷۹۹ ۳۳۳ ۴۴۴\u{2069}");
     }
 
     public function test_phone_must_be_a_valid_afghan_mobile_and_unique(): void
