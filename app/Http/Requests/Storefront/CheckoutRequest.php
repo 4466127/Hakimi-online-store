@@ -76,6 +76,10 @@ class CheckoutRequest extends FormRequest
             'delivery_date' => ['required', 'date_format:Y-m-d'],
             // خالی = اولین نمایندگی فعال (سرویس خودش انتخاب می‌کند)
             'collection_point_id' => ['nullable', 'integer', Rule::exists('collection_points', 'id')->where('is_active', true)],
+            // موقعیت روی نقشه: اختیاری؛ هر دو با هم و داخل افغانستان
+            'delivery_lat' => ['nullable', 'numeric', 'required_with:delivery_lng', 'between:'.implode(',', config('store.maps.bounds.lat'))],
+            'delivery_lng' => ['nullable', 'numeric', 'required_with:delivery_lat', 'between:'.implode(',', config('store.maps.bounds.lng'))],
+            'delivery_location_source' => ['nullable', Rule::in(['map', 'gps'])],
 
             // پرداخت و یادداشت
             'payment_method_code' => ['required', 'string', Rule::exists('payment_methods', 'code')->where('is_active', true)],
@@ -95,6 +99,9 @@ class CheckoutRequest extends FormRequest
             'delivery_date.date_format' => __('checkout.errors.delivery_date_invalid'),
             'collection_point_id.exists' => __('checkout.errors.collection_point_invalid'),
             'payment_method_code.exists' => __('checkout.errors.payment_unavailable'),
+            'delivery_lat.*' => __('checkout.location.invalid'),
+            'delivery_lng.*' => __('checkout.location.invalid'),
+            'delivery_location_source.*' => __('checkout.location.invalid'),
         ];
     }
 
@@ -118,6 +125,9 @@ class CheckoutRequest extends FormRequest
             city: $isDelivery ? $this->cleaned('city') : null,
             district: $isDelivery ? $this->cleaned('district') : null,
             addressLine: $isDelivery ? $this->cleaned('address_line') : null,
+            deliveryLat: $isDelivery && $this->filled('delivery_lat') && $this->filled('delivery_lng') ? (string) $this->input('delivery_lat') : null,
+            deliveryLng: $isDelivery && $this->filled('delivery_lat') && $this->filled('delivery_lng') ? (string) $this->input('delivery_lng') : null,
+            deliveryLocationSource: $isDelivery ? $this->cleaned('delivery_location_source') : null,
             deliveryInstructions: $isDelivery ? $this->cleaned('delivery_instructions') : null,
             deliveryDate: $this->string('delivery_date')->toString(),
             collectionPointId: $isDelivery ? null : ($this->filled('collection_point_id') ? $this->integer('collection_point_id') : null),

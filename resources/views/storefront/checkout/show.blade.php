@@ -209,6 +209,74 @@
                                                 maxlength="500" :placeholder="__('checkout.delivery.instructions_placeholder')" class="sm:col-span-2" />
                         </div>
 
+                        {{-- موقعیت روی نقشه (اختیاری): آدرس نوشتاری همیشه کافی است؛ نقشه فقط کار پیک را راحت می‌کند --}}
+                        @if (config('store.maps.enabled'))
+                            <div class="mt-4 rounded-xl border border-gray-200 p-4" id="delivery-location"
+                                 x-data="locationPicker(@js([
+                                     'tileUrl' => config('store.maps.tile_url'),
+                                     'attribution' => config('store.maps.attribution'),
+                                     'maxZoom' => config('store.maps.max_zoom'),
+                                     'center' => config('store.maps.center'),
+                                     'zoom' => config('store.maps.zoom'),
+                                     'lat' => (string) old('delivery_lat', ''),
+                                     'lng' => (string) old('delivery_lng', ''),
+                                     'source' => (string) old('delivery_location_source', ''),
+                                     'text' => [
+                                         'drag' => __('checkout.location.drag'),
+                                         'mapFailed' => __('checkout.location.map_failed'),
+                                         'gpsDenied' => __('checkout.location.gps_denied'),
+                                         'gpsUnavailable' => __('checkout.location.gps_unavailable'),
+                                         'gpsDone' => __('checkout.location.gps_done'),
+                                     ],
+                                 ]))">
+                                <input type="hidden" name="delivery_lat" x-model="lat" value="{{ old('delivery_lat') }}">
+                                <input type="hidden" name="delivery_lng" x-model="lng" value="{{ old('delivery_lng') }}">
+                                <input type="hidden" name="delivery_location_source" x-model="source" value="{{ old('delivery_location_source') }}">
+
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ __('checkout.location.heading') }} <span class="text-xs font-normal text-gray-500">({{ __('checkout.location.optional') }})</span>
+                                </p>
+                                <p class="form-help mt-1">{{ __('checkout.location.help') }}</p>
+
+                                <p x-show="chosen" x-cloak class="mt-3 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">
+                                    @svg('heroicon-o-check-circle', 'size-5 shrink-0')
+                                    <span>{{ __('checkout.location.chosen') }}</span>
+                                </p>
+
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <button type="button" x-on:click="show()" class="btn btn-outline">
+                                        @svg('heroicon-o-map', 'size-5')
+                                        <span x-text="chosen ? @js(__('checkout.location.change')) : @js(__('checkout.location.choose'))">{{ __('checkout.location.choose') }}</span>
+                                    </button>
+                                    <button type="button" x-on:click="useMyLocation()" x-bind:disabled="locating" class="btn btn-outline">
+                                        @svg('heroicon-o-map-pin', 'size-5')
+                                        <span x-text="locating ? @js(__('checkout.location.locating')) : @js(__('checkout.location.use_gps'))">{{ __('checkout.location.use_gps') }}</span>
+                                    </button>
+                                    <button type="button" x-show="chosen" x-cloak x-on:click="clear()" class="btn min-h-11 px-3 text-sm text-red-700 underline">
+                                        {{ __('checkout.location.clear') }}
+                                    </button>
+                                </div>
+
+                                <p x-show="message" x-cloak x-text="message" class="mt-2 text-sm text-amber-800" role="status"></p>
+                                @error('delivery_lat')<p class="form-error">{{ $message }}</p>@enderror
+
+                                <div x-show="open" x-cloak class="mt-3">
+                                    <p class="form-help mb-2">{{ __('checkout.location.drag') }}</p>
+                                    <div class="relative">
+                                        <div x-ref="map" dir="ltr" class="bz-map h-72 w-full overflow-hidden rounded-lg bg-gray-100 md:h-80"
+                                             role="application" aria-label="{{ __('checkout.location.map_label') }}"></div>
+                                        <p x-show="loading" class="absolute inset-0 flex items-center justify-center text-sm text-gray-600">{{ __('checkout.location.loading') }}</p>
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <button type="button" x-on:click="confirm()" x-bind:disabled="! draft || failed" class="btn btn-primary">
+                                            {{ __('checkout.location.confirm') }}
+                                        </button>
+                                        <button type="button" x-on:click="open = false" class="btn btn-outline">{{ __('checkout.location.close') }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         {{-- روز تحویل: برای هر ولایت جدا (بی بارگذاری دوباره‌ی صفحه) --}}
                         <fieldset class="mt-5">
                             <legend class="text-sm font-bold text-gray-900">

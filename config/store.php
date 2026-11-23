@@ -12,6 +12,25 @@ use App\Services\Payments\Gateways\LogGateway;
 
 return [
 
+    /*
+     | نقشه‌ی انتخاب موقعیت تحویل (Leaflet؛ کتابخانه داخل سایت است، فقط کاشی‌های نقشه از سرور نقشه می‌آید).
+     | پیش‌فرض: کاشی‌های استاندارد OpenStreetMap — طبق «Tile Usage Policy» برای دیدن عادی کاربر مجاز است،
+     | با نام OpenStreetMap روی نقشه؛ ولی تضمینی ندارد و ممکن است بی خبر بسته شود. اگر فروش زیاد شد،
+     | MAP_TILE_URL و MAP_ATTRIBUTION را به یک سرویس پولی (مثلاً MapTiler) یا سرور خودمان عوض کنید.
+     | MAP_ENABLED=false ← دکمه‌ی نقشه پنهان؛ آدرس نوشتاری همیشه کار می‌کند.
+     */
+    'maps' => [
+        'enabled' => (bool) env('MAP_ENABLED', true),
+        'tile_url' => env('MAP_TILE_URL', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'attribution' => env('MAP_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'),
+        'max_zoom' => (int) env('MAP_MAX_ZOOM', 19),
+        // مرکز اول نقشه: کابل
+        'center' => [34.5553, 69.2075],
+        'zoom' => 13,
+        // مرز تقریبی افغانستان: موقعیت بیرون از آن پذیرفته نمی‌شود
+        'bounds' => ['lat' => [29.3, 38.6], 'lng' => [60.4, 75.0]],
+    ],
+
     // بنرهای صفحه‌ی اصلی: هر چند میلی‌ثانیه بنر بعدی (خواست صاحب پروژه: ۱٫۵ ثانیه، حلقوی)
     'home' => [
         'banner_interval_ms' => (int) env('BANNER_INTERVAL_MS', 1500),

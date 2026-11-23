@@ -92,6 +92,8 @@ class Order extends Model
             'is_gift' => 'boolean',
             'delivery_date' => 'date',
             'delivery_weight_grams' => 'integer',
+            'delivery_lat' => 'decimal:7',
+            'delivery_lng' => 'decimal:7',
             'needs_stock_check' => 'boolean',
             'placed_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -195,6 +197,36 @@ class Order extends Model
     public function isPickup(): bool
     {
         return $this->delivery_method === 'pickup';
+    }
+
+    /** موقعیت روی نقشه ثبت شده؟ (فقط درِ خانه) */
+    public function hasLocation(): bool
+    {
+        return ! $this->isPickup() && $this->delivery_lat !== null && $this->delivery_lng !== null;
+    }
+
+    /** «lat,lng» با ۶ رقم اعشار، یا null */
+    public function locationText(): ?string
+    {
+        return $this->hasLocation()
+            ? rtrim(rtrim((string) $this->delivery_lat, '0'), '.').','.rtrim(rtrim((string) $this->delivery_lng, '0'), '.')
+            : null;
+    }
+
+    /** دکمه‌ی «مسیریابی»: گوگل مپ از جای فعلی پیک تا موقعیت مشتری. */
+    public function directionsUrl(): ?string
+    {
+        $point = $this->locationText();
+
+        return $point === null ? null : 'https://www.google.com/maps/dir/?api=1&destination='.$point;
+    }
+
+    /** دیدن نقطه روی گوگل مپ. */
+    public function mapUrl(): ?string
+    {
+        $point = $this->locationText();
+
+        return $point === null ? null : 'https://www.google.com/maps/search/?api=1&query='.$point;
     }
 
     /** هنوز می‌شود لغو کرد؟ (تا قبل از تحویل و لغو) */

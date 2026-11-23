@@ -14,8 +14,10 @@ use App\Support\Jalali;
 use App\Support\Money;
 use App\Support\Num;
 use App\Support\Phone;
+use Filament\Actions\Action;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -107,6 +109,28 @@ class OrderInfolist
                         TextEntry::make('delivery_instructions')
                             ->label(__('admin.orders.instructions'))
                             ->placeholder('—'),
+                        // موقعیت روی نقشه (اختیاری). پیک فقط سفارش واگذارشده‌ی خودش را باز می‌کند (OrderPolicy).
+                        TextEntry::make('delivery_location')
+                            ->label(__('admin.orders.location'))
+                            ->state(fn (Order $record): string => $record->hasLocation()
+                                ? (string) __('admin.orders.location_saved', ['source' => __('admin.orders.location_sources.'.($record->delivery_location_source ?? 'map'))])
+                                : (string) __('admin.orders.location_none'))
+                            ->helperText(fn (Order $record): ?string => $record->locationText())
+                            ->visible(fn (Order $record): bool => ! $record->isPickup()),
+                        Actions::make([
+                            Action::make('directions')
+                                ->label(__('admin.orders.directions'))
+                                ->icon('heroicon-o-map')
+                                ->color('primary')
+                                ->url(fn (Order $record): ?string => $record->directionsUrl(), shouldOpenInNewTab: true),
+                            Action::make('view_map')
+                                ->label(__('admin.orders.view_on_map'))
+                                ->icon('heroicon-o-map-pin')
+                                ->color('gray')
+                                ->url(fn (Order $record): ?string => $record->mapUrl(), shouldOpenInNewTab: true),
+                        ])
+                            ->visible(fn (Order $record): bool => $record->hasLocation())
+                            ->columnSpan(2),
                     ]),
 
                 Section::make(__('admin.orders.items'))

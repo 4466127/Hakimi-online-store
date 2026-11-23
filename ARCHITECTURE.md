@@ -85,7 +85,7 @@
 
 ### ۳-۳. بسته‌های تأییدشده
 - Composer: `laravel/framework` (۱۳.۴۲)، `laravel/tinker`، `filament/filament` (۵.۱۱؛ Livewire را خودش می‌آورد)، `intervention/image-laravel` (از مرحله‌ی ۳)؛ فقط توسعه: `laravel/pint`، `phpunit/phpunit`، `fakerphp/faker`.
-- npm (فقط توسعه، روی لپتاپ): `vite`، `laravel-vite-plugin`، `tailwindcss`، `@tailwindcss/vite`، `alpinejs`.
+- npm (فقط توسعه، روی لپتاپ): `vite`، `laravel-vite-plugin`، `tailwindcss`، `@tailwindcss/vite`، `alpinejs`، **`leaflet` 1.9.4** (نقشه‌ی انتخاب موقعیت تحویل؛ خواست صاحب پروژه ۲ قوس ۱۴۰۵؛ مجوز BSD-2). Leaflet داخل خود سایت ساخته می‌شود (بی CDN) و فایل جدا است که فقط با زدن «انتخاب موقعیت روی نقشه» بار می‌شود (~۴۳ کیلوبایت فشرده). **فقط کاشی‌های نقشه** از سرور نقشه می‌آیند: پیش‌فرض OpenStreetMap (`config('store.maps')`؛ قابل عوض کردن با `MAP_TILE_URL`). شرط‌های OSM Tile Usage Policy: نام «OpenStreetMap» روی نقشه، Referer فرستاده شود (`Referrer-Policy: strict-origin-when-cross-origin` همین کار را می‌کند)، هیچ دانلود انبوه یا آفلاین؛ **تضمین ندارد و ممکن است بی خبر بسته شود** — برای فروش زیاد، سرویس پولی (مثلاً MapTiler) یا سرور کاشی خودمان. CSP مرحله‌ی ۸ باید `img-src` همان سرور کاشی را اجازه بدهد.
 - **هر بسته‌ی دیگر با دلیل و تأیید صاحب پروژه.**
 
 ### ۳-۴. آگاهانه نمی‌گیریم

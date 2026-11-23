@@ -403,6 +403,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | **is_gift** | BOOL | «برای کس دیگری می‌خرم» |
 | **recipient_name, recipient_phone** | VARCHAR | گیرنده؛ تلفن افغانی |
 | province_id, city, **district**, address_line, **delivery_instructions** | | آدرس تحویل (خالی برای حضوری) |
+| delivery_lat, delivery_lng, delivery_location_source | DECIMAL(10,7) NULL، VARCHAR(10) NULL | **ساخته شد (`2026_11_23_000700`):** موقعیت روی نقشه (اختیاری، فقط درِ خانه، کپی همان لحظه)؛ `map`/`gps`؛ ۶ رقم اعشار؛ فقط داخل مرز تقریبی افغانستان پذیرفته می‌شود. در پروفایل مشتری نگه داشته نمی‌شود |
 | status | VARCHAR(15) | `pending/confirmed/processing/shipped/delivered/cancelled/returned` (محاسبه‌شده از سفارش‌های فروشنده؛ ثبت‌شده برای فیلتر) |
 | payment_status | VARCHAR(25) | `unpaid/awaiting_collection/pending/paid/failed/partially_refunded/refunded` |
 | payment_method_code | VARCHAR(30) | |

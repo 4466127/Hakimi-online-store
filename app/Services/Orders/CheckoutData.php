@@ -25,6 +25,10 @@ final readonly class CheckoutData
         public ?string $city = null,
         public ?string $district = null,
         public ?string $addressLine = null,
+        /** موقعیت روی نقشه (اختیاری؛ عرض و طول جغرافیایی، و map|gps) */
+        public ?string $deliveryLat = null,
+        public ?string $deliveryLng = null,
+        public ?string $deliveryLocationSource = null,
         public ?string $deliveryInstructions = null,
         /** روز تحویل انتخاب‌شده (Y-m-d)؛ فقط برای درِ خانه */
         public ?string $deliveryDate = null,

@@ -132,6 +132,8 @@ class CheckoutService
                 'city' => $data->deliveryMethod === DeliveryCalculator::METHOD_DELIVERY ? $data->city : null,
                 'district' => $data->deliveryMethod === DeliveryCalculator::METHOD_DELIVERY ? $data->district : null,
                 'address_line' => $data->deliveryMethod === DeliveryCalculator::METHOD_DELIVERY ? $data->addressLine : null,
+                // موقعیت روی نقشه فقط برای درِ خانه و فقط وقتی هر دو عدد هست (کپی همان لحظه روی سفارش)
+                ...$this->location($data),
                 'delivery_instructions' => $data->deliveryInstructions,
                 'payment_method_code' => $method->code,
                 'currency_code' => 'AFN',
@@ -304,6 +306,23 @@ class CheckoutService
         if ($placed >= $max) {
             throw new CheckoutException('too_many_orders');
         }
+    }
+
+    /**
+     * @return array{delivery_lat: ?string, delivery_lng: ?string, delivery_location_source: ?string}
+     */
+    private function location(CheckoutData $data): array
+    {
+        $none = ['delivery_lat' => null, 'delivery_lng' => null, 'delivery_location_source' => null];
+        if ($data->deliveryMethod !== DeliveryCalculator::METHOD_DELIVERY || $data->deliveryLat === null || $data->deliveryLng === null) {
+            return $none;
+        }
+
+        return [
+            'delivery_lat' => number_format((float) $data->deliveryLat, 6, '.', ''),
+            'delivery_lng' => number_format((float) $data->deliveryLng, 6, '.', ''),
+            'delivery_location_source' => in_array($data->deliveryLocationSource, ['map', 'gps'], true) ? $data->deliveryLocationSource : 'map',
+        ];
     }
 
     private function checkAmountLimits(PaymentMethod $method, string $total): void

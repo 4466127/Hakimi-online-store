@@ -171,6 +171,13 @@
                                     {{ collect([$order->province?->tr('name'), $order->city, $order->district, $order->address_line])->filter()->implode('، ') }}
                                 </dd>
                             </div>
+                            @if ($order->hasLocation())
+                                {{-- خود عددهای موقعیت این‌جا نشان داده نمی‌شود (صفحه با لینک باز می‌شود) --}}
+                                <div class="flex flex-wrap items-center gap-x-2 text-green-700">
+                                    @svg('heroicon-o-map-pin', 'size-4')
+                                    <span>{{ __('checkout.location.saved_on_order') }}</span>
+                                </div>
+                            @endif
                             @if ($order->delivery_instructions)
                                 <div class="flex flex-wrap gap-x-2">
                                     <dt class="text-gray-500">{{ __('checkout.order.instructions') }}:</dt>
