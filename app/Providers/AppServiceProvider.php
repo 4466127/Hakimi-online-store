@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Category;
+use App\Models\Page;
+use App\Models\Product;
+use App\Models\Seller;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Cart\CartService;
 use App\Services\CategoryMenu;
+use App\Services\Seo\Sitemap;
 use App\Services\Settings;
 use App\Services\StoreInfo;
 use App\Support\AdminNotify;
@@ -72,6 +77,16 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerAdminNotifications();
         $this->registerAdminLoginGuards();
+        $this->registerSitemapRefresh();
+    }
+
+    /** هر ذخیره یا حذف جنس، دسته، صفحه یا فروشنده نقشه‌ی سایت را تازه می‌کند (مرحله‌ی ۹-۱). */
+    private function registerSitemapRefresh(): void
+    {
+        foreach ([Product::class, Category::class, Page::class, Seller::class] as $model) {
+            $model::saved(fn () => Sitemap::forget());
+            $model::deleted(fn () => Sitemap::forget());
+        }
     }
 
     /**

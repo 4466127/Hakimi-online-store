@@ -13,6 +13,7 @@ use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\SearchController;
 use App\Http\Controllers\Storefront\SellerController;
 use App\Http\Controllers\Storefront\SellerOnboardingController;
+use App\Http\Controllers\Storefront\SeoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +24,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeController::class)->name('home');
+
+// گوگل: نقشه‌ی سایت و robots.txt (مرحله‌ی ۹-۱؛ فایل ثابت public/robots.txt برداشته شد)
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
 
 // رسید چاپی پول گرفته‌شده (فقط کاربر پنل؛ اجازه در PaymentPolicy)
 Route::get('/admin/receipts/{payment}', [ReceiptController::class, 'show'])
