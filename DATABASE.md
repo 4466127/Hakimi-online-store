@@ -283,11 +283,13 @@ Index: `product_id`، (`is_active`)، `barcode`.
 #### `promotion_targets`
 `id`، `promotion_id` FK، `target_type` VARCHAR(10)، `target_id` BIGINT. UNIQUE (`promotion_id`, `target_type`, `target_id`).
 
-#### `coupons`
-`id`، `code` VARCHAR(30) UNIQUE، `type`، `value`، `min_order_total` DECIMAL NULL، `max_discount` DECIMAL NULL، `max_uses` INT NULL، `max_uses_per_customer` INT NULL، `used_count` INT، `starts_at`، `ends_at`، `is_active`، timestamps.
+#### `discount_codes` — کد تخفیف ✓ (۹-۳، `2026_11_23_000500`؛ نام طرح قبلی `coupons` بود)
+`id`، `code` VARCHAR(30) UNIQUE (یکسان‌شده: A-Z ۰-۹ - _)، `type` VARCHAR(10) (`percent`/`fixed`)، `value` DECIMAL(12,2)، `min_order_total` DECIMAL NULL (قیمت اجناس بی کرایه)، `max_discount` DECIMAL NULL (فقط درصدی)، `max_uses` UNSIGNED INT NULL، `max_uses_per_phone` UNSIGNED INT NULL، `first_order_only` BOOL، `used_count` UNSIGNED INT (فقط زیر قفل ردیف)، `starts_at`/`ends_at` NULL، `is_active`، `note`، `created_by` FK users NULL، timestamps. INDEX (`is_active`, `starts_at`, `ends_at`).
 
-#### `coupon_redemptions`
-`id`، `coupon_id` FK، `order_id` FK، `customer_id` FK NULL، `amount` DECIMAL(12,2)، `created_at`.
+#### `discount_code_redemptions` ✓
+`id`، `discount_code_id` FK (restrict)، `order_id` FK **UNIQUE** (هر سفارش حداکثر یک بار)، `customer_id` FK NULL، `phone` VARCHAR(20) (موبایل یکسان‌شده‌ی خریدار)، `amount` DECIMAL(12,2) (تخفیف هنگام ثبت)، `returned_amount` DECIMAL(12,2) (سهم اجناس برگشتی، از روی سندهای برگشت)، `status` (`active`/`released`)، `released_at`، `release_reason`، timestamps. INDEX (`discount_code_id`, `phone`, `status`). حذف نمی‌شود (مدل رد می‌کند).
+
+**ستون‌های همراه:** `orders.discount_code_id` FK NULL + `orders.discount_code` VARCHAR(30) (کپی)؛ `commission_entries.platform_discount` DECIMAL(12,2) (سهم تخفیف بازارک هر خط در سند فروش، منفی در سند برگشت؛ «هزینه کدهای تخفیف بازارک» = جمع همین). `order_items.platform_discount` و `seller_orders.platform_discount_total` از مرحله‌ی ۲ بود و حالا پر می‌شود.
 
 ### ث) تحویل
 

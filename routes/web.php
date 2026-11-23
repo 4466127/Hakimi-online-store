@@ -62,6 +62,9 @@ Route::middleware('throttle:storefront-cart')->group(function () {
 // تسویه و ثبت سفارش (مهمان هم می‌تواند؛ فقط نام و شماره)
 Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
 Route::post('/checkout', [CheckoutController::class, 'place'])->middleware('throttle:checkout')->name('checkout.place');
+// کد تخفیف (مرحله‌ی ۹-۳): اعمال و برداشتن؛ محدودیت تعداد تا کسی کدها را حدس نزند
+Route::post('/checkout/discount', [CheckoutController::class, 'applyDiscount'])->middleware('throttle:discount-code')->name('checkout.discount.apply');
+Route::post('/checkout/discount/remove', [CheckoutController::class, 'removeDiscount'])->name('checkout.discount.remove');
 
 // صفحه‌ی سفارش با uuid (حدس‌زدنی نیست) و پیگیری با شماره‌ی سفارش + موبایل
 Route::get('/order/{uuid}', [OrderController::class, 'show'])->whereUuid('uuid')->name('order.show');

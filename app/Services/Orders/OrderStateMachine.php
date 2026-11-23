@@ -12,6 +12,7 @@ use App\Models\SellerOrder;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Commission\OrderAccounting;
+use App\Services\Marketing\DiscountCodeService;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +54,7 @@ class OrderStateMachine
         private readonly StockLedger $stock,
         private readonly ActivityLogger $logger,
         private readonly OrderAccounting $accounting,
+        private readonly DiscountCodeService $discounts,
     ) {}
 
     public function can(string $from, string $to): bool
@@ -107,6 +109,11 @@ class OrderStateMachine
             $this->logger->log('seller_order.status_changed', $so, ['from' => $from, 'to' => $to, 'note' => $note], $actor);
 
             $this->rollUp($order, $actor, $note);
+
+            // سفارش کامل لغو/رد شد ← استفاده‌ی کد تخفیف آزاد می‌شود (ردیف تاریخچه می‌ماند)
+            if ($order->status === Order::STATUS_CANCELLED) {
+                $this->discounts->release($order, 'order_cancelled');
+            }
 
             // حساب فروشنده: تحویل (اگر پول رسیده) ← طلب؛ برگشت بعد از تحویل ← سند برگشت با همان نرخ
             if ($to === 'delivered') {

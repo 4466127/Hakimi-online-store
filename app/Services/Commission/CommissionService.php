@@ -329,6 +329,8 @@ class CommissionService
                     'category_id' => $item->category_id,
                     'description' => $description,
                     'gross_amount' => $gross,
+                    // سهم تخفیف کد بازارک همین خط: هزینه‌ی بازارک، جدا از کمیسیون و طلب فروشنده (مرحله‌ی ۹-۳)
+                    'platform_discount' => Money::of((string) $item->platform_discount),
                     'commission_rate' => Num::round((string) $item->commission_rate, 2),
                     'commission_type' => $item->commission_type,
                     'rate_source' => $item->rate_source,
@@ -384,6 +386,7 @@ class CommissionService
                 $remainingGross = Money::add($sale->gross_amount, (string) (clone $reversed)->sum('gross_amount'));
                 $remainingCommission = Money::add($sale->commission_amount, (string) (clone $reversed)->sum('commission_amount'));
                 $remainingSeller = Money::add($sale->seller_amount, (string) (clone $reversed)->sum('seller_amount'));
+                $remainingDiscount = Money::add($sale->platform_discount, (string) (clone $reversed)->sum('platform_discount'));
 
                 $gross = $amount === null ? $remainingGross : Money::of($amount);
                 if (Money::compare($gross, 0) <= 0 || Money::compare($gross, $remainingGross) > 0) {
@@ -394,7 +397,11 @@ class CommissionService
                 if (Money::compare($gross, $remainingGross) === 0) {
                     $commission = $remainingCommission;
                     $sellerAmount = $remainingSeller;
+                    $platformDiscount = $remainingDiscount;
                 } else {
+                    // سهم تخفیف بازارک به نسبت مبلغ برگشتی (گرد به ۰٫۰۱)
+                    $platformDiscount = Money::of(bcdiv(
+                        bcadd(bcmul($remainingDiscount, $gross, 6), bcdiv($remainingGross, '200', 6), 6), $remainingGross, 2));
                     $commission = match (true) {
                         $sale->seller_id === null => '0.00',
                         // مبلغ ثابت: به نسبت مبلغ برگشتی از کمیسیون باقی‌مانده
@@ -416,6 +423,7 @@ class CommissionService
                     'category_id' => $sale->category_id,
                     'description' => $description,
                     'gross_amount' => '-'.$gross,
+                    'platform_discount' => Money::sub(0, $platformDiscount),
                     'commission_type' => $sale->commission_type ?? 'percent',
                     'commission_rate' => $sale->commission_rate,
                     'rate_source' => $sale->rate_source,

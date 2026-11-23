@@ -37,6 +37,8 @@ final readonly class CheckoutData
         public ?string $utmSource = null,
         public ?string $utmMedium = null,
         public ?string $utmCampaign = null,
+        /** کد تخفیفی که مشتری در صفحه‌ی تسویه اعمال کرد (مرحله‌ی ۹-۳)؛ مبلغش همیشه در سرور حساب می‌شود */
+        public ?string $discountCode = null,
         public string $locale = 'fa',
         public ?string $ip = null,
         public ?string $userAgent = null,

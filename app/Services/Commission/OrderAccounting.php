@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\SellerOrder;
 use App\Models\User;
+use App\Services\Marketing\DiscountCodeService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -30,6 +31,7 @@ class OrderAccounting
     public function __construct(
         private readonly CommissionService $commission,
         private readonly SellerLedger $ledger,
+        private readonly DiscountCodeService $discounts,
     ) {}
 
     /**
@@ -96,6 +98,12 @@ class OrderAccounting
                     $actor,
                 );
                 $count++;
+            }
+
+            // کد تخفیف: سهم اجناس برگشتی ثبت می‌شود؛ استفاده‌ی کد آزاد نمی‌شود (مرحله‌ی ۹-۳)
+            $order = Order::query()->find($sellerOrder->order_id);
+            if ($order !== null) {
+                $this->discounts->syncReturned($order);
             }
 
             return $count;

@@ -85,6 +85,7 @@ class MarketplaceFinanceStats extends StatsOverviewWidget implements HasActions
             $stat('own_sales', 'primary'),
             $stat('marketplace_gmv'),
             $stat('commission', 'success'),
+            $stat('platform_discounts', 'danger'),
             // فروشندگان
             $stat('seller_earnings'),
             $stat('seller_eligible', 'success'),

@@ -69,6 +69,9 @@ class AppServiceProvider extends ServiceProvider
         // ثبت سفارش: ۱۰ بار در دقیقه از یک IP (جلوی سفارش انبوه ساختگی)
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
+        // کد تخفیف: ۱۰ امتحان در دقیقه از یک IP (جلوی حدس زدن کدها)
+        RateLimiter::for('discount-code', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+
         // پیگیری سفارش: ۱۵ بار در دقیقه از یک IP (جلوی امتحان کردن شماره‌های تصادفی)
         RateLimiter::for('order-track', fn (Request $request) => Limit::perMinute(15)->by($request->ip()));
 

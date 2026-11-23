@@ -16,6 +16,9 @@
     use App\Support\Num;
 
     $subtotal = $totals['subtotal'];
+    // کد تخفیف (مرحله‌ی ۹-۳): مبلغ را سرور حساب کرده؛ فقط روی قیمت اجناس، نه کرایه
+    $discountAmount = $discount['amount'] ?? '0.00';
+    $goods = Money::sub($subtotal, $discountAmount);
     $kg = Num::format(bcdiv((string) $totals['weight'], '1000', 1), 1);
 
     // جمع‌های آماده‌ی سرور: کلید = «کد پرداخت|pickup|تاریخ» یا «کد پرداخت|شناسه‌ی ولایت|تاریخ»
@@ -30,7 +33,7 @@
                 $calc[$code.'|pickup|'.$option->dateString()] = [
                     'delivery' => __('checkout.totals.free'),
                     'fee' => $feeText,
-                    'total' => Money::format(Money::add($subtotal, $paymentFee)),
+                    'total' => Money::format(Money::add($goods, $paymentFee)),
                 ];
             }
         }
@@ -40,7 +43,7 @@
                     $calc[$code.'|'.$provinceId.'|'.$option->dateString()] = [
                         'delivery' => Money::format($option->total),
                         'fee' => $feeText,
-                        'total' => Money::format(Money::add(Money::add($subtotal, $option->total), $paymentFee)),
+                        'total' => Money::format(Money::add(Money::add($goods, $option->total), $paymentFee)),
                     ];
                 }
             }
@@ -351,11 +354,49 @@
                     @endforeach
                 </ul>
 
+                {{-- کد تخفیف: دکمه‌ها همین فورم را به آدرس دیگر می‌فرستند تا نوشته‌های مشتری بماند --}}
+                <div class="mt-4 border-b border-gray-100 pb-4" id="discount-code">
+                    @if ($discount)
+                        <div class="flex items-center justify-between gap-3 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">
+                            <span>{{ __('checkout.discount.applied_box', ['code' => $discount['code']]) }}</span>
+                            <button type="submit" formaction="{{ route('checkout.discount.remove') }}" formnovalidate
+                                    class="min-h-11 shrink-0 px-2 font-medium text-red-700 underline">{{ __('checkout.discount.remove') }}</button>
+                        </div>
+                    @else
+                        <label for="discount_code" class="mb-1.5 block text-sm font-medium text-gray-800">{{ __('checkout.discount.label') }}</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="discount_code" name="discount_code" maxlength="30" dir="ltr" autocomplete="off"
+                                   value="{{ old('discount_code') }}" placeholder="{{ __('checkout.discount.placeholder') }}"
+                                   aria-describedby="discount_code_help"
+                                   class="form-input min-w-0 flex-1 uppercase @error('discount_code', 'discount') border-red-500 @enderror">
+                            <button type="submit" formaction="{{ route('checkout.discount.apply') }}" formnovalidate
+                                    class="btn btn-outline shrink-0">{{ __('checkout.discount.apply') }}</button>
+                        </div>
+                        @error('discount_code', 'discount')
+                            <p class="mt-1.5 text-sm text-red-700" role="alert">{{ $message }}</p>
+                        @enderror
+                        @if ($discountError)
+                            <p class="mt-1.5 text-sm text-red-700" role="alert">{{ $discountError }}</p>
+                        @endif
+                        <p id="discount_code_help" class="mt-1.5 text-xs text-gray-500">{{ __('checkout.discount.phone_note') }}</p>
+                    @endif
+                </div>
+
                 <dl class="mt-4 space-y-3 text-sm">
                     <div class="flex justify-between gap-3">
                         <dt class="text-gray-600">{{ __('checkout.totals.items', ['count' => Num::toFa((string) $totals['units'])]) }}</dt>
                         <dd class="font-medium text-gray-900">{{ Money::format($subtotal) }}</dd>
                     </div>
+                    @if ($discount)
+                        <div class="flex justify-between gap-3 text-green-700">
+                            <dt>{{ __('checkout.discount.row_with_code', ['code' => $discount['code']]) }}</dt>
+                            <dd class="font-medium">− {{ Money::format($discountAmount) }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-gray-600">{{ __('checkout.discount.goods_after') }}</dt>
+                            <dd class="font-medium text-gray-900">{{ Money::format($goods) }}</dd>
+                        </div>
+                    @endif
                     @if (Money::compare($totals['savings'], 0) > 0)
                         <div class="flex justify-between gap-3 text-red-700">
                             <dt>{{ __('checkout.totals.savings') }}</dt>

@@ -144,6 +144,11 @@ class OrderInfolist
                         TextEntry::make('subtotal')
                             ->label(__('admin.orders.subtotal'))
                             ->formatStateUsing(fn ($state): string => Money::format($state)),
+                        TextEntry::make('discount_total')
+                            ->label(__('admin.orders.discount_total'))
+                            ->formatStateUsing(fn ($state, $record): string => Money::format($state)
+                                .($record->discount_code ? ' ('.$record->discount_code.')' : ''))
+                            ->visible(fn ($record): bool => Money::compare($record->discount_total, 0) > 0),
                         TextEntry::make('delivery_fee')
                             ->label(__('admin.orders.delivery_fee'))
                             ->formatStateUsing(fn ($state): string => Money::format($state)),

@@ -23,6 +23,7 @@ use App\Services\Catalog\ProductCatalog;
 use App\Services\Commission\AppliedRate;
 use App\Services\Commission\CommissionService;
 use App\Services\Delivery\DeliveryCalculator;
+use App\Services\Marketing\DiscountCodeService;
 use App\Services\Payments\Gateways\PaymentGatewayManager;
 use App\Services\Settings;
 use App\Services\StoreInfo;
@@ -59,6 +60,7 @@ class CheckoutService
         private readonly StockLedger $stock,
         private readonly StoreInfo $store,
         private readonly ActivityLogger $logger,
+        private readonly DiscountCodeService $discounts,
     ) {}
 
     /**
@@ -99,8 +101,21 @@ class CheckoutService
             }
 
             $subtotal = $lines->reduce(fn (string $c, array $l) => Money::add($c, $l['lineTotal']), '0.00');
+
+            // ── کد تخفیف (مرحله‌ی ۹-۳): زیر قفل ردیف کد؛ از جیب بازارک؛ فقط روی قیمت اجناس ──
+            $discount = '0.00';
+            $discountCode = null;
+            if ($data->discountCode !== null && trim($data->discountCode) !== '') {
+                $quote = $this->discounts->quote($data->discountCode, $subtotal, $data->purchaserPhone, $data->customerId, lock: true);
+                $discountCode = $quote['code'];
+                $discount = $quote['amount'];
+            }
+            // سهم هر خط به نسبت مبلغش (برای حساب؛ سهم فروشنده و کمیسیون دست نمی‌خورد)
+            $shares = $this->discounts->allocate($discount, $lines->map(fn (array $l) => $l['lineTotal'])->all());
+            $lines = $lines->map(fn (array $l, int $i) => $l + ['platformDiscount' => $shares[$i] ?? '0.00']);
+
             $paymentFee = Money::of($method->fee);
-            $total = Money::add(Money::add($subtotal, $deliveryFee), $paymentFee);
+            $total = Money::add(Money::add(Money::sub($subtotal, $discount), $deliveryFee), $paymentFee);
             $this->checkAmountLimits($method, $total);
 
             // ── سفارش والد ──
@@ -137,7 +152,9 @@ class CheckoutService
                 'user_agent' => $data->userAgent === null ? null : mb_substr($data->userAgent, 0, 255),
                 'placed_at' => now(),
                 'subtotal' => $subtotal,
-                'discount_total' => '0.00',
+                'discount_total' => $discount,
+                'discount_code_id' => $discountCode?->id,
+                'discount_code' => $discountCode?->code,
                 'delivery_fee' => $deliveryFee,
                 'payment_fee' => $paymentFee,
                 'total' => $total,
@@ -187,6 +204,10 @@ class CheckoutService
             $this->history('order', $order->id, null, Order::STATUS_PENDING, null);
             $this->history('payment', $payment->id, null, Payment::AWAITING_COLLECTION, null);
 
+            if ($discountCode !== null) {
+                $this->discounts->redeem($order, $discountCode, $discount, $data->purchaserPhone, $data->customerId);
+            }
+
             $this->carts->clear($cart);
 
             $this->logger->log('order.placed', $order, [
@@ -195,6 +216,8 @@ class CheckoutService
                 'method' => $method->code,
                 'delivery' => $data->deliveryMethod,
                 'sellers' => count($sellerOrders),
+                'discount_code' => $discountCode?->code,
+                'discount' => $discount,
             ]);
 
             return $order->load(['sellerOrders.items', 'payments']);
@@ -359,6 +382,7 @@ class CheckoutService
         $gross = '0.00';
         $commissionTotal = '0.00';
         $saving = '0.00';
+        $platformDiscount = '0.00';
         $rows = [];
 
         foreach ($group as $line) {
@@ -375,6 +399,7 @@ class CheckoutService
             $gross = Money::add($gross, $line['lineTotal']);
             $commissionTotal = Money::add($commissionTotal, $commission);
             $saving = Money::add($saving, $line['saving']);
+            $platformDiscount = Money::add($platformDiscount, $line['platformDiscount'] ?? '0.00');
             $rows[] = $this->itemRow($variant, $line, $rate, $commission, $sellerAmount);
         }
 
@@ -387,8 +412,9 @@ class CheckoutService
             'payment_status' => 'awaiting_collection',
             'gross_subtotal' => $gross,
             'seller_discount_total' => '0.00',
-            'platform_discount_total' => '0.00',
-            'customer_paid_products' => $gross,
+            // تخفیف کد بازارک: مشتری کمتر می‌دهد، ولی پایه‌ی کمیسیون و سهم فروشنده همان می‌ماند (بازارک فرقش را می‌دهد)
+            'platform_discount_total' => $platformDiscount,
+            'customer_paid_products' => Money::sub($gross, $platformDiscount),
             'commissionable_amount' => $gross,
             'commission_total' => $commissionTotal,
             'delivery_fee' => '0.00',                              // تحویل یکپارچه: کرایه روی سفارش والد
@@ -430,7 +456,7 @@ class CheckoutService
             'compare_at_price' => $variant->compare_at_price,
             'discount_amount' => $line['saving'],
             'seller_discount' => '0.00',
-            'platform_discount' => '0.00',
+            'platform_discount' => $line['platformDiscount'] ?? '0.00',
             'qty' => $line['qty'],
             'line_total' => $line['lineTotal'],
             'commission_rule_id' => $rate->overrideId,

@@ -218,6 +218,12 @@
                             <dt class="text-gray-600">{{ __('checkout.totals.items', ['count' => Num::toFa((string) $order->items->sum('qty'))]) }}</dt>
                             <dd class="font-medium text-gray-900">{{ Money::format($order->subtotal) }}</dd>
                         </div>
+                        @if (Money::compare($order->discount_total, 0) > 0)
+                            <div class="flex justify-between gap-3 text-green-700">
+                                <dt>{{ $order->discount_code ? __('checkout.discount.row_with_code', ['code' => $order->discount_code]) : __('checkout.discount.row') }}</dt>
+                                <dd class="font-medium">− {{ Money::format($order->discount_total) }}</dd>
+                            </div>
+                        @endif
                         <div class="flex justify-between gap-3">
                             <dt class="text-gray-600">{{ __('checkout.totals.delivery') }}</dt>
                             <dd class="font-medium text-gray-900">

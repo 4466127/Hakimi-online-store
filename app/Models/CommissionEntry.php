@@ -37,6 +37,7 @@ class CommissionEntry extends Model
     {
         return [
             'gross_amount' => 'decimal:2',
+            'platform_discount' => 'decimal:2',
             'commission_rate' => 'decimal:2',
             'commission_amount' => 'decimal:2',
             'seller_amount' => 'decimal:2',

@@ -63,6 +63,8 @@ class FinanceReport
             'own_sales' => $sum($entries()->whereNull('seller_id'), 'gross_amount'),
             'marketplace_gmv' => $sum($entries()->whereNotNull('seller_id'), 'gross_amount'),
             'commission' => $sum($entries(), 'commission_amount'),
+            // هزینه‌ی واقعی کدهای تخفیف بازارک (فروش ثبت‌شده منهای سهم برگشتی‌ها؛ مرحله‌ی ۹-۳)
+            'platform_discounts' => $sum($entries(), 'platform_discount'),
             'seller_earnings' => $sum($entries(), 'seller_amount'),
             'returns' => Money::sub(0, $sum($entries()->where('kind', CommissionEntry::KIND_REVERSAL), 'gross_amount')),
             'settled' => $sum($inRange(SellerSettlement::query(), 'paid_at'), 'amount'),

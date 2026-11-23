@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Storefront;
 
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Rules\AfghanMobile;
 use App\Services\Delivery\DeliveryCalculator;
 use App\Services\Marketing\CampaignAttribution;
@@ -126,6 +127,8 @@ class CheckoutRequest extends FormRequest
             utmSource: $campaign['source'] ?? null,
             utmMedium: $campaign['medium'] ?? null,
             utmCampaign: $campaign['campaign'] ?? null,
+            // کد تخفیف فقط همانی که در صفحه‌ی تسویه «اعمال» شد (نشست)، نه خانه‌ی فورم
+            discountCode: $this->session()->get(CheckoutController::DISCOUNT_SESSION_KEY),
             locale: app()->getLocale(),
             ip: $this->ip(),
             userAgent: $this->userAgent(),
