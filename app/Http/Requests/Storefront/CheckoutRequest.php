@@ -1,0 +1,129 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Storefront;
+
+use App\Rules\AfghanMobile;
+use App\Services\Delivery\DeliveryCalculator;
+use App\Services\Orders\CheckoutData;
+use App\Support\Phone;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+/**
+ * اعتبارسنجی فورم تسویه (مرحله‌ی ۲-۲).
+ *
+ * اینجا فقط «شکل» ورودی بررسی می‌شود؛ هیچ مبلغی از مرورگر گرفته نمی‌شود و قاعده‌های اصلی
+ * (موجودی، روز تحویل، کرایه، سازگاری روش پرداخت با تحویل) در `CheckoutService` زیر قفل
+ * دوباره بررسی می‌شود.
+ */
+class CheckoutRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /** شماره‌ها استاندارد می‌شود؛ اگر گیرنده خود خریدار است، نام و شماره‌اش کاپی می‌شود. */
+    protected function prepareForValidation(): void
+    {
+        $purchaserPhone = Phone::normalize((string) $this->input('purchaser_phone')) ?? $this->input('purchaser_phone');
+        $isGift = $this->boolean('is_gift');
+
+        $this->merge([
+            'purchaser_name' => trim((string) $this->input('purchaser_name')),
+            'purchaser_phone' => $purchaserPhone,
+            'is_gift' => $isGift,
+            'recipient_name' => $isGift ? trim((string) $this->input('recipient_name')) : trim((string) $this->input('purchaser_name')),
+            'recipient_phone' => $isGift
+                ? (Phone::normalize((string) $this->input('recipient_phone')) ?? $this->input('recipient_phone'))
+                : $purchaserPhone,
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        $isDelivery = $this->input('delivery_method') === DeliveryCalculator::METHOD_DELIVERY;
+
+        return [
+            // خریدار
+            'purchaser_name' => ['required', 'string', 'min:2', 'max:100'],
+            'purchaser_phone' => ['required', 'string', 'max:20', new AfghanMobile],
+            'purchaser_email' => ['nullable', 'email', 'max:150'],
+            'is_gift' => ['boolean'],
+
+            // گیرنده (اگر خود خریدار است، در prepareForValidation کاپی شده)
+            'recipient_name' => ['required', 'string', 'min:2', 'max:100'],
+            'recipient_phone' => ['required', 'string', 'max:20', new AfghanMobile],
+
+            // تحویل
+            'delivery_method' => ['required', Rule::in([DeliveryCalculator::METHOD_DELIVERY, DeliveryCalculator::METHOD_PICKUP])],
+            'province_id' => [$isDelivery ? 'required' : 'nullable', 'integer', Rule::exists('provinces', 'id')->where('is_active', true)->where('delivery_enabled', true)],
+            'city' => ['nullable', 'string', 'max:100'],
+            'district' => ['nullable', 'string', 'max:100'],
+            'address_line' => [$isDelivery ? 'required' : 'nullable', 'string', 'min:5', 'max:500'],
+            'delivery_instructions' => ['nullable', 'string', 'max:500'],
+            'delivery_date' => [$isDelivery ? 'required' : 'nullable', 'date_format:Y-m-d'],
+            // خالی = اولین نمایندگی فعال (سرویس خودش انتخاب می‌کند)
+            'collection_point_id' => ['nullable', 'integer', Rule::exists('collection_points', 'id')->where('is_active', true)],
+
+            // پرداخت و یادداشت
+            'payment_method_code' => ['required', 'string', Rule::exists('payment_methods', 'code')->where('is_active', true)],
+            'customer_note' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'address_line.required' => __('checkout.errors.address_required'),
+            'province_id.required' => __('checkout.errors.address_required'),
+            'province_id.exists' => __('checkout.errors.delivery_unavailable'),
+            'delivery_date.required' => __('checkout.errors.delivery_date_invalid'),
+            'delivery_date.date_format' => __('checkout.errors.delivery_date_invalid'),
+            'collection_point_id.exists' => __('checkout.errors.collection_point_invalid'),
+            'payment_method_code.exists' => __('checkout.errors.payment_unavailable'),
+        ];
+    }
+
+    /** داده‌ی تسویه برای سرویس (بی هیچ مبلغی). */
+    public function toCheckoutData(): CheckoutData
+    {
+        $isDelivery = $this->string('delivery_method')->toString() === DeliveryCalculator::METHOD_DELIVERY;
+
+        return new CheckoutData(
+            purchaserName: $this->string('purchaser_name')->toString(),
+            purchaserPhone: $this->string('purchaser_phone')->toString(),
+            recipientName: $this->string('recipient_name')->toString(),
+            recipientPhone: $this->string('recipient_phone')->toString(),
+            deliveryMethod: $this->string('delivery_method')->toString(),
+            paymentMethodCode: $this->string('payment_method_code')->toString(),
+            purchaserEmail: $this->filled('purchaser_email') ? $this->string('purchaser_email')->toString() : null,
+            isGift: $this->boolean('is_gift'),
+            provinceId: $isDelivery ? $this->integer('province_id') : null,
+            city: $isDelivery ? $this->cleaned('city') : null,
+            district: $isDelivery ? $this->cleaned('district') : null,
+            addressLine: $isDelivery ? $this->cleaned('address_line') : null,
+            deliveryInstructions: $isDelivery ? $this->cleaned('delivery_instructions') : null,
+            deliveryDate: $isDelivery ? $this->string('delivery_date')->toString() : null,
+            collectionPointId: $isDelivery ? null : ($this->filled('collection_point_id') ? $this->integer('collection_point_id') : null),
+            customerNote: $this->cleaned('customer_note'),
+            customerId: $this->user('customer')?->id,
+            source: 'web',
+            locale: app()->getLocale(),
+            ip: $this->ip(),
+            userAgent: $this->userAgent(),
+        );
+    }
+
+    /** متن کوتاه‌شده و پاک، یا null اگر خالی بود. */
+    private function cleaned(string $key): ?string
+    {
+        $value = trim((string) $this->input($key));
+
+        return $value === '' ? null : $value;
+    }
+}

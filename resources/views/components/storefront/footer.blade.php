@@ -64,6 +64,12 @@
                         {{ __('store.footer.sell') }}
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('order.track') }}" class="inline-flex min-h-11 items-center gap-1.5 hover:text-brand-700">
+                        @svg('heroicon-o-magnifying-glass', 'size-5 text-gray-400')
+                        {{ __('checkout.track.title') }}
+                    </a>
+                </li>
                 @foreach ($pages as $page)
                     <li>
                         <a href="{{ $page['url'] }}" class="inline-flex min-h-11 items-center hover:text-brand-700">{{ $page['title'] }}</a>

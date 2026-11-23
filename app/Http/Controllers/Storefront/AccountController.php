@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,8 +15,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * حساب کاربری مشتری: خلاصه، ویرایش نام و تغییر رمز.
- * سفارش‌ها و آدرس‌ها در مرحله‌ی ۴ اضافه می‌شود.
+ * حساب کاربری مشتری: خلاصه، سه سفارش آخر، ویرایش نام و تغییر رمز.
+ * آدرس‌های ذخیره‌شده بعد از MVP اضافه می‌شود.
  */
 class AccountController extends Controller
 {
@@ -27,6 +28,7 @@ class AccountController extends Controller
         return view('storefront.account.show', [
             'customer' => $customer,
             'seller' => $customer->seller,
+            'orders' => Order::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(3)->get(),
         ]);
     }
 

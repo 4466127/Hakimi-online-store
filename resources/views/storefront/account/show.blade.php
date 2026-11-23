@@ -30,10 +30,9 @@
                             </a>
                         </li>
                         <li>
-                            <span class="flex min-h-11 items-center gap-2 px-3 text-gray-400" aria-disabled="true">
+                            <a href="{{ route('account.orders') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
                                 @svg('heroicon-o-shopping-bag', 'size-5') {{ __('customer.account.menu.orders') }}
-                                <span class="ms-auto rounded-full bg-gray-100 px-2 text-xs">{{ __('customer.account.soon') }}</span>
-                            </span>
+                            </a>
                         </li>
                         <li>
                             <span class="flex min-h-11 items-center gap-2 px-3 text-gray-400" aria-disabled="true">
@@ -83,12 +82,31 @@
                     </div>
                 @endif
 
-                {{-- سفارش‌ها (مرحله‌ی ۴) --}}
+                {{-- سه سفارش آخر --}}
                 <section class="card p-5">
-                    <h2 class="flex items-center gap-2 font-bold text-gray-900">
-                        @svg('heroicon-o-shopping-bag', 'size-5 text-gray-400') {{ __('customer.account.menu.orders') }}
-                    </h2>
-                    <p class="mt-2 text-sm leading-7 text-gray-500">{{ __('customer.account.orders_soon') }}</p>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="flex items-center gap-2 font-bold text-gray-900">
+                            @svg('heroicon-o-shopping-bag', 'size-5 text-gray-400') {{ __('customer.account.menu.orders') }}
+                        </h2>
+                        @if ($orders->isNotEmpty())
+                            <a href="{{ route('account.orders') }}" class="text-sm font-medium text-brand-700 hover:underline">{{ __('checkout.mine.view') }}</a>
+                        @endif
+                    </div>
+
+                    @if ($orders->isEmpty())
+                        <p class="mt-2 text-sm leading-7 text-gray-500">{{ __('checkout.mine.empty_text') }}</p>
+                    @else
+                        <ul class="mt-3 divide-y divide-gray-100 text-sm">
+                            @foreach ($orders as $order)
+                                <li class="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                                    <a href="{{ route('order.show', ['uuid' => $order->uuid]) }}" class="font-medium text-brand-700 hover:underline" dir="ltr">{{ $order->number }}</a>
+                                    <span class="text-xs text-gray-500">{{ \App\Support\Jalali::date($order->placed_at) }}</span>
+                                    <span class="text-gray-600">{{ __('checkout.status.'.$order->status) }}</span>
+                                    <span class="font-bold text-gray-900">{{ \App\Support\Money::format($order->total) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </section>
 
                 {{-- معلومات من --}}

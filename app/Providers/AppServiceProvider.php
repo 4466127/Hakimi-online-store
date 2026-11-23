@@ -61,6 +61,12 @@ class AppServiceProvider extends ServiceProvider
         // سبد: ۶۰ تغییر در دقیقه از یک IP
         RateLimiter::for('storefront-cart', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
 
+        // ثبت سفارش: ۱۰ بار در دقیقه از یک IP (جلوی سفارش انبوه ساختگی)
+        RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+
+        // پیگیری سفارش: ۱۵ بار در دقیقه از یک IP (جلوی امتحان کردن شماره‌های تصادفی)
+        RateLimiter::for('order-track', fn (Request $request) => Limit::perMinute(15)->by($request->ip()));
+
         // صفحه‌بندی فارسی و سبک برای سایت مشتری (پنل مدیریت صفحه‌بندی خودش را دارد)
         Paginator::defaultView('vendor.pagination.bazarak');
 

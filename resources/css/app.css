@@ -128,7 +128,8 @@
         @apply mb-1.5 block text-sm font-medium text-gray-800;
     }
 
-    .form-label .req {
+    /* نشان «لازم» (در عنوان خانه و در legend گروه‌ها) */
+    .req {
         @apply text-red-600;
     }
 

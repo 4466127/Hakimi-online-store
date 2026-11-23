@@ -3,8 +3,10 @@
 use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CategoryController;
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\HomeController;
+use App\Http\Controllers\Storefront\OrderController;
 use App\Http\Controllers\Storefront\PageController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\SearchController;
@@ -17,7 +19,6 @@ use Illuminate\Support\Facades\Route;
 | آدرس‌های صفحه‌های مشتری (فروشگاه)
 |--------------------------------------------------------------------------
 | پنل مدیریت در /admin است و آدرس‌هایش را Filament خودش می‌سازد.
-| سبد و سفارش در مرحله‌ی ۴ اضافه می‌شود.
 */
 
 Route::get('/', HomeController::class)->name('home');
@@ -40,6 +41,15 @@ Route::middleware('throttle:storefront-cart')->group(function () {
     Route::delete('/cart/items/{item}', [CartController::class, 'remove'])->whereNumber('item')->name('cart.remove');
 });
 
+// تسویه و ثبت سفارش (مهمان هم می‌تواند؛ فقط نام و شماره)
+Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/checkout', [CheckoutController::class, 'place'])->middleware('throttle:checkout')->name('checkout.place');
+
+// صفحه‌ی سفارش با uuid (حدس‌زدنی نیست) و پیگیری با شماره‌ی سفارش + موبایل
+Route::get('/order/{uuid}', [OrderController::class, 'show'])->whereUuid('uuid')->name('order.show');
+Route::get('/track', [OrderController::class, 'trackForm'])->name('order.track');
+Route::post('/track', [OrderController::class, 'track'])->middleware('throttle:order-track')->name('order.track.submit');
+
 // دسته‌بندی اجناس
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories');
 Route::get('/category/{slug}', [CategoryController::class, 'show'])
@@ -59,6 +69,7 @@ Route::middleware('auth:customer')->group(function () {
 
     // حساب کاربری
     Route::get('/account', [AccountController::class, 'show'])->name('account');
+    Route::get('/account/orders', [OrderController::class, 'mine'])->name('account.orders');
     Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
 
