@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
@@ -26,12 +27,14 @@ class OrderController extends Controller
     public function show(Request $request, string $uuid): View
     {
         $order = Order::query()
-            ->with(['items', 'province', 'collectionPoint', 'latestPayment'])
+            ->with(['items', 'province', 'collectionPoint', 'payments'])
             ->where('uuid', $uuid)
             ->firstOrFail();
 
         return view('storefront.orders.show', [
             'order' => $order,
+            // رسید پولی که گرفته شده (اگر گرفته شده باشد)
+            'paid' => $order->payments->where('status', Payment::PAID)->last(),
             'method' => PaymentMethod::query()->where('code', $order->payment_method_code)->first(),
             'justPlaced' => (bool) $request->session()->get('placed', false),
         ]);

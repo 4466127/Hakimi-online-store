@@ -23,6 +23,7 @@ use App\Services\Catalog\ProductCatalog;
 use App\Services\Commission\AppliedRate;
 use App\Services\Commission\CommissionService;
 use App\Services\Delivery\DeliveryCalculator;
+use App\Services\Payments\Gateways\PaymentGatewayManager;
 use App\Services\Settings;
 use App\Services\StoreInfo;
 use App\Support\Money;
@@ -203,8 +204,9 @@ class CheckoutService
     {
         $method = PaymentMethod::query()->active()->where('code', $data->paymentMethodCode)->first();
 
-        // درگاه آنلاین هنوز ساخته نشده (مرحله‌ی ۵)؛ فقط نقد می‌تواند سفارش بسازد
-        if ($method === null || ! $method->isCash()) {
+        // روش نقد همیشه ممکن است؛ درگاه آنلاین فقط وقتی که واقعاً پیکربندی شده باشد
+        // (امروز هیچ درگاهی آماده نیست — حساب‌پی مرحله‌ی ۵، بعد از حساب پذیرنده و کلید API).
+        if ($method === null || ! app(PaymentGatewayManager::class)->isReady($method)) {
             throw new CheckoutException('payment_unavailable');
         }
         if (! $method->fitsDelivery($data->deliveryMethod)) {

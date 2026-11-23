@@ -74,6 +74,67 @@ class OrderWorkflow
         return $order->refresh();
     }
 
+    /**
+     * سفارش را **تا** وضعیت خواسته‌شده پیش می‌برد و پله‌های میانی را یکی‌یکی و با ثبت تاریخچه رد می‌کند.
+     *
+     * برای کار واقعی لازم است: پیک دمِ در «پول گرفتم و جنس را دادم» را می‌زند و سفارش باید به
+     * «تحویل شد» برسد، حتی اگر کسی «ارسال شد» را نزده بود. هر پله جدا در تاریخچه می‌ماند،
+     * پس سند کار دست‌نخورده است.
+     *
+     * @throws OrderTransitionException
+     */
+    public function advanceTo(Order $order, string $target, ?User $actor = null, ?string $note = null): Order
+    {
+        $ladder = [Order::STATUS_PENDING, Order::STATUS_CONFIRMED, Order::STATUS_PROCESSING, Order::STATUS_SHIPPED, Order::STATUS_DELIVERED];
+        $targetIndex = array_search($target, $ladder, true);
+        if ($targetIndex === false) {
+            throw new OrderTransitionException('transition_denied', $order->status, $target);
+        }
+
+        for ($step = 0; $step < count($ladder); $step++) {
+            $current = array_search($order->status, $ladder, true);
+            if ($current === false || $current >= $targetIndex) {
+                break;
+            }
+            $order = $this->advance($order, $ladder[$current + 1], $actor, $note);
+        }
+
+        if ($order->status !== $target) {
+            throw new OrderTransitionException('transition_denied', $order->status, $target);
+        }
+
+        return $order;
+    }
+
+    /**
+     * واگذاری سفارش به یک پیک (یا برداشتن واگذاری با null).
+     * در حالت «تحویل یکپارچه» یک پیک همه‌ی سفارش را می‌برد، پس روی همه‌ی سفارش‌های فروشنده ثبت می‌شود.
+     */
+    public function assignCourier(Order $order, ?User $courier, ?User $actor = null): Order
+    {
+        return DB::transaction(function () use ($order, $courier, $actor): Order {
+            foreach ($this->actionable($order) as $sellerOrder) {
+                $sellerOrder->forceFill(['assigned_courier_id' => $courier?->id])->save();
+            }
+
+            $this->logger->log('order.courier_assigned', $order, [
+                'courier_id' => $courier?->id,
+                'courier' => $courier?->name,
+            ], $actor);
+
+            return $order->refresh();
+        });
+    }
+
+    /** پیک واگذارشده‌ی این سفارش (در حالت یکپارچه یک نفر؛ اگر نبود null). */
+    public function courier(Order $order): ?User
+    {
+        $id = SellerOrder::query()->where('order_id', $order->id)
+            ->whereNotNull('assigned_courier_id')->value('assigned_courier_id');
+
+        return $id === null ? null : User::query()->find($id);
+    }
+
     /** لغو (رد) سفارش با دلیل. رزرو موجودی آزاد می‌شود و پرداخت منتظر «ناموفق» می‌شود. */
     public function cancel(Order $order, string $reason, ?User $actor = null): Order
     {

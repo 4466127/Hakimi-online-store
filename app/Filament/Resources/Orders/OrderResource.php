@@ -9,11 +9,13 @@ use App\Filament\Resources\Orders\Pages\ViewOrder;
 use App\Filament\Resources\Orders\Schemas\OrderInfolist;
 use App\Filament\Resources\Orders\Tables\OrdersTable;
 use App\Models\Order;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Throwable;
 
 /**
@@ -49,7 +51,8 @@ class OrderResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         try {
-            $count = Order::query()->where('status', Order::STATUS_PENDING)->count();
+            // از همان پرس‌وجوی محدودشده می‌خوانیم تا پیک تعداد سفارش‌های دیگران را هم نبیند
+            $count = static::getEloquentQuery()->where('status', Order::STATUS_PENDING)->count();
         } catch (Throwable $e) {
             return null;
         }
@@ -60,6 +63,21 @@ class OrderResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'warning';
+    }
+
+    /**
+     * پیک فقط سفارش‌های واگذارشده‌ی خودش را در لیست می‌بیند (مرحله‌ی ۳؛ `OrderPolicy` هم همین را می‌گوید).
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user instanceof User && $user->role->isCourier()) {
+            $query->whereHas('sellerOrders', fn (Builder $inner) => $inner->where('assigned_courier_id', $user->id));
+        }
+
+        return $query;
     }
 
     public static function infolist(Schema $schema): Schema

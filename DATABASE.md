@@ -374,7 +374,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 
 ### چ-۲) طرح v2 — سفارش چندفروشنده، پرداخت، بازپرداخت (**تأیید شد ۲ قوس ۱۴۰۵**؛ بخش اول migrate شد)
 
-> **وضعیت migrate:** `orders`، `seller_orders` (با ستون‌های صورت مالی)، `order_items` (با کپی کمیسیون؛ بی `commission_rule_id` FK)، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` ← **ساخته شد** (`2026_11_22_000100/000200`). `orders.delivery_code` هم اضافه شد (`2026_11_23_000100`). ستون‌های ساخته‌نشده‌ی این بخش (کوپن/UTM/آدرس صورتحساب در `orders`، `exchange_rate`) و جدول‌های `payment_events`، `payment_allocations`، `commission_rules`، `seller_settlement_items`، `refunds`، `refund_items`، `order_returns*`، ستون‌های تازه‌ی `seller_transactions`/`seller_settlements`/`sellers` و `activity_log.reason` و نقش `courier` ← **بعداً** در مرحله‌ی خودشان.
+> **وضعیت migrate:** `orders`، `seller_orders` (با ستون‌های صورت مالی)، `order_items` (با کپی کمیسیون؛ بی `commission_rule_id` FK)، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` ← **ساخته شد** (`2026_11_22_000100/000200`). `orders.delivery_code` (`2026_11_23_000100`) و `payments.delivery_code_verified` (`2026_11_23_000200`) هم اضافه شد. **نقش `courier`** هم آمد (ستون `users.role` از اول VARCHAR است و migration نخواست). ستون‌های ساخته‌نشده‌ی این بخش (کوپن/UTM/آدرس صورتحساب در `orders`، `exchange_rate`) و جدول‌های `payment_events`، `payment_allocations`، `commission_rules`، `seller_settlement_items`، `refunds`، `refund_items`، `order_returns*`، ستون‌های تازه‌ی `seller_transactions`/`seller_settlements`/`sellers` و `activity_log.reason` و نقش `courier` ← **بعداً** در مرحله‌ی خودشان.
 
 قاعده‌ها: پول `DECIMAL(12,2)`؛ تعداد `UNSIGNED INT`؛ UUID برای سفارش، سفارش فروشنده، پرداخت، بازپرداخت؛ همه InnoDB؛ ردیف‌های مالی ویرایش و حذف ندارند (فقط سند معکوس).
 
@@ -434,7 +434,8 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 | amount_received | پول نقدِ واقعی گرفته‌شده |
 | collected_by FK users NULL، collected_at_type (`door`/`point`)، collection_point_id FK NULL، collected_at | چه کسی، کجا (دم در توسط پیک / نمایندگی)، کی (تاریخ و ساعت) |
 | courier_cash_status | `held_by_courier`/`handed_over` NULL (پولِ دست پیک تا تحویل به صندوق)؛ `handed_over_to`، `handed_over_at` |
-| receipt_number | **UNIQUE** NULL (`RC-…`) |
+| receipt_number | **UNIQUE** NULL (`RC-` + ۱۰۰۰۰۰ + شناسه ← `RC-100001`؛ هنگام «پول رسید» ساخته می‌شود) |
+| **delivery_code_verified** | BOOL، پیش‌فرض ۰ (migration `2026_11_23_000200`): کد تحویل مشتری هنگام گرفتن پول بررسی و درست بود — سندِ تحویلِ درست روی خود رسید |
 | payer_name, transfer_reference, receipt_path | حواله/رسید (**MVP ساخته نمی‌شود**؛ تصمیم ۱ قوس ۱۴۰۵) |
 | note، timestamps | |
 
@@ -473,7 +474,7 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 - تنظیمات بازارگاه: `marketplace.settlement_hold_days` (۰)، `marketplace.commission_priority`، `marketplace.platform_discount_cap_by_commission` (اختیاری).
 
 #### migration‌های لازم (به ترتیب پیشنهادی)
-۱) `orders` + `seller_orders` (با ستون‌های صورت مالی) + `order_items` (با کپی کمیسیون) + `order_status_history` + `stock_movements`؛ ۲) `payment_methods` + `payments` + `payment_events` + `payment_allocations` + `collection_points`؛ ۳) `users.role` (courier) + `activity_log.reason`؛ ۴) `commission_rules` (+ انتقال داده) + تغییر `seller_transactions` + `seller_settlement_items` + `seller_settlements.status` + `sellers.payment_fee_policy`؛ ۵) `refunds` + `refund_items` + `order_returns*`. هیچ‌کدام داده‌ی موجود را پاک نمی‌کند.
+۱) `orders` + `seller_orders` (با ستون‌های صورت مالی) + `order_items` (با کپی کمیسیون) + `order_status_history` + `stock_movements`؛ ۲) `payment_methods` + `payments` + `payment_events` + `payment_allocations` + `collection_points`؛ ۳) ~~`users.role` (courier)~~ ✓ (۲ قوس ۱۴۰۵؛ ستون متنی بود و فقط `UserRole::Courier` اضافه شد) + `activity_log.reason`؛ ۴) `commission_rules` (+ انتقال داده) + تغییر `seller_transactions` + `seller_settlement_items` + `seller_settlements.status` + `sellers.payment_fee_policy`؛ ۵) `refunds` + `refund_items` + `order_returns*`. هیچ‌کدام داده‌ی موجود را پاک نمی‌کند.
 
 ### ح) محتوا و تنظیمات
 

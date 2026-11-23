@@ -12,6 +12,7 @@ use App\Models\Province;
 use App\Services\Cart\CartService;
 use App\Services\Delivery\DeliveryCalculator;
 use App\Services\Delivery\DeliveryOption;
+use App\Services\Payments\Gateways\PaymentGatewayManager;
 use App\Services\StoreInfo;
 use Illuminate\Support\Collection;
 
@@ -86,8 +87,11 @@ class CheckoutPage
      */
     public function paymentMethods(): Collection
     {
+        $gateways = app(PaymentGatewayManager::class);
+
         return PaymentMethod::query()->active()->orderBy('position')->orderBy('id')->get()
-            ->filter(fn (PaymentMethod $method) => $method->isCash())
+            // نقد همیشه؛ درگاه آنلاین فقط اگر واقعاً پیکربندی شده باشد (امروز هیچ‌کدام)
+            ->filter(fn (PaymentMethod $method) => $gateways->isReady($method))
             ->map(fn (PaymentMethod $method) => [
                 'method' => $method,
                 'delivery' => $method->fitsDelivery(DeliveryCalculator::METHOD_DELIVERY),

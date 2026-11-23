@@ -5,7 +5,9 @@
 
 ## ۱. صفحه‌های مشتری (web، با CSRF)
 
-> **وضعیت واقعی (۲ قوس ۱۴۰۵، مرحله‌ی ۲-۲ ساخته شد):** `GET/POST /checkout`، `GET /order/{uuid}`، `GET/POST /track` و `GET /account/orders` **ساخته شده‌اند**. نام محدودیت‌ها در کد: `throttle:checkout` (۱۰ در دقیقه از یک IP) و `throttle:order-track` (۱۵ در دقیقه). `collection_point_id` اختیاری است (خالی = اولین نمایندگی فعال). «کلید Idempotency فورم»، لغو توسط مشتری، و پرداخت آنلاین (`/order/{uuid}/pay`، `/payments/{uuid}/return`) **هنوز ساخته نشده‌اند** (مرحله‌های ۳ و ۵).
+> **وضعیت واقعی (۲ قوس ۱۴۰۵، مرحله‌ی ۲-۲ ساخته شد):** `GET/POST /checkout`، `GET /order/{uuid}`، `GET/POST /track` و `GET /account/orders` **ساخته شده‌اند**. نام محدودیت‌ها در کد: `throttle:checkout` (۱۰ در دقیقه از یک IP) و `throttle:order-track` (۱۵ در دقیقه). `collection_point_id` اختیاری است (خالی = اولین نمایندگی فعال). «کلید Idempotency فورم»، لغو توسط مشتری، و پرداخت آنلاین (`/order/{uuid}/pay`، `/payments/{uuid}/return`، webhook) **هنوز ساخته نشده‌اند** (مرحله‌ی ۵، منتظر حساب پذیرنده‌ی حساب‌پی).
+
+> **مرحله‌ی ۳ (۲ قوس ۱۴۰۵) ساخته شد:** `GET /admin/receipts/{payment-uuid}` (رسید چاپی؛ فقط کاربر پنل با اجازه‌ی `PaymentPolicy@view`). ثبت پول نقد **آدرس عمومی ندارد** و فقط از صفحه‌ی سفارش در پنل و با **کد تحویل** انجام می‌شود (`CashCollectionService::collect`). نام‌های واقعی سرویس‌ها: `PaymentStateMachine::markPaid/fail/syncOrder`، `CashCollectionService::collect/handOver/heldByCourier`، `OrderWorkflow::assignCourier/advanceTo`.
 
 | متد و مسیر | کار | محافظت |
 |---|---|---|
@@ -40,14 +42,17 @@ interface PaymentGateway {
     public function refund(Payment $p, string $amount, string $key): GatewayRefund; // فقط اگر capabilities اجازه دهد
 }
 ```
-درایورها: `HesabPayGateway` (مرحله‌ی ۵)، `FakeGateway` (فقط تست؛ **درگاه جعلی در سایت واقعی نیست**)، و `Manual` (حواله) و `Cash` که واسط ندارند و با سرویس تأیید دستی کار می‌کنند.
+درایورها: `HesabPayGateway` (مرحله‌ی ۵)، و پول نقد که واسط درگاه ندارد و با `CashCollectionService` کار می‌کند. حواله (`Manual`) به تصمیم صاحب پروژه ساخته نمی‌شود.
+
+> **واسط واقعیِ ساخته‌شده (مرحله‌ی ۳):** `App\Services\Payments\Gateways\PaymentGateway` با `code()`، `isReady()`، `start(Payment, Order): GatewayStart` و `verify(payload, headers): GatewayEvent`؛ تنها پیاده‌سازی امروز `LogGateway` است که **هیچ پولی جابه‌جا نمی‌کند** و `isReady() === false`. `PaymentGatewayManager::isReady(PaymentMethod)` نگه می‌دارد که روش درگاهیِ آماده‌نشده به مشتری نشان داده نشود.
 
 ## ۴. عمل‌های پنل مدیریت (سرویس‌ها)
 
 | سرویس | عمل | دسترسی | دلیل؟ |
 |---|---|---|---|
 | `OrderService::confirm/process/ship/deliver/cancel` | گذار وضعیت سفارش فروشنده | مدیر، کارمند سفارش (پیک: فقط `deliver`) | لغو و override بلی |
-| `PaymentService::recordCashCollection(Payment, amount, user)` | ثبت پول نقد | مدیر، کارمند سفارش، پیک (واگذارشده)، مسئول نقطه | اختلاف مبلغ بلی |
+| `CashCollectionService::collect(Order, CashCollection, User)` ✓ (مرحله‌ی ۳؛ نام طرح قدیمی: `PaymentService::recordCashCollection`) | ثبت پول نقد **با بررسی کد تحویل** + رسید | مدیر، کارمند سفارش، پیک (فقط سفارش واگذارشده‌ی خودش و فقط دمِ در) | اختلاف مبلغ بلی |
+| `CashCollectionService::handOver(payments, User)` ✓ | تحویل گرفتن پولِ دست پیک (صندوق) | صاحب، مدیر، کارمند سفارش | لاگ |
 | `PaymentService::confirmTransfer / rejectTransfer` | حواله | مدیر | بلی |
 | `RefundService::request / approve / markCompleted / reject` | بازپرداخت | درخواست: کارمند/مدیر؛ تأیید: مدیر/صاحب | بلی |
 | `ReturnService::request / receive / close` | برگشت جنس | مدیر، کارمند | بلی |

@@ -65,7 +65,20 @@
                         </div>
                     </dl>
 
-                    @if ($order->delivery_code && $order->isOpen())
+                    {{-- پول گرفته شد: رسید مشتری (مرحله‌ی ۳) --}}
+                    @if ($paid)
+                        <div class="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
+                            <p class="text-sm font-bold text-green-900">{{ __('checkout.order.paid_heading') }}</p>
+                            <p class="mt-1.5 text-xs leading-6 text-green-900">
+                                {{ __('checkout.order.paid_body', [
+                                    'amount' => Money::format($paid->amount_received ?? $paid->amount),
+                                    'receipt' => Num::toFa((string) $paid->receipt_number),
+                                ]) }}
+                            </p>
+                        </div>
+                    @endif
+
+                    @if ($order->delivery_code && $order->isOpen() && ! $paid)
                         <div class="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
                             <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
                                 <span class="text-sm font-bold text-brand-900">{{ __('checkout.order.code_heading') }}:</span>

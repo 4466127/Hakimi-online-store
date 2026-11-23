@@ -34,14 +34,17 @@ class AdminAccessTest extends TestCase
             'sellers' => '/admin/sellers',
             'products' => '/admin/products',
             'orders' => '/admin/orders',
+            'payments' => '/admin/payments',
         ];
 
         // چه کسی کدام بخش را می‌بیند
         $allowed = [
-            'owner' => ['dashboard', 'users', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders'],
-            'manager' => ['dashboard', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders'],
-            'staff' => ['dashboard', 'customers', 'orders'],
+            'owner' => ['dashboard', 'users', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders', 'payments'],
+            'manager' => ['dashboard', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders', 'payments'],
+            'staff' => ['dashboard', 'customers', 'orders', 'payments'],
             'editor' => ['dashboard', 'pages', 'categories', 'products'],
+            // پیک فقط سفارش‌های واگذارشده‌ی خودش و پول‌هایی که خودش گرفته
+            'courier' => ['dashboard', 'orders', 'payments'],
         ];
 
         $cases = [];

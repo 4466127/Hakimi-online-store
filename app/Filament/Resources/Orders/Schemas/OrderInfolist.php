@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Orders\Schemas;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
+use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\SellerOrder;
 use App\Support\Jalali;
@@ -163,6 +164,48 @@ class OrderInfolist
                             ->columnSpanFull(),
                     ]),
 
+                // پول نقد و رسید (مرحله‌ی ۳): چه کسی، کجا، چقدر، با کدام رسید
+                Section::make(__('admin.payments.section_cash'))
+                    ->columns(3)
+                    ->schema([
+                        TextEntry::make('payments_receipt')
+                            ->label(__('admin.payments.receipt_number'))
+                            ->state(fn (Order $record): string => self::paid($record)?->receipt_number === null
+                                ? '—'
+                                : Num::toFa((string) self::paid($record)?->receipt_number))
+                            ->weight('bold')
+                            ->copyable(),
+                        TextEntry::make('payments_collector')
+                            ->label(__('admin.payments.collector'))
+                            ->state(fn (Order $record): string => self::paid($record)?->collector?->name ?? '—'),
+                        TextEntry::make('payments_place')
+                            ->label(__('admin.payments.place'))
+                            ->state(function (Order $record): string {
+                                $place = self::paid($record)?->collected_at_type;
+
+                                return $place === null ? '—' : (string) __('payments.place.'.$place);
+                            }),
+                        TextEntry::make('payments_courier_cash')
+                            ->label(__('admin.payments.courier_cash'))
+                            ->state(function (Order $record): string {
+                                $status = self::paid($record)?->courier_cash_status;
+
+                                return $status === null ? '—' : (string) __('payments.courier_cash.'.$status);
+                            }),
+                        TextEntry::make('assigned_courier')
+                            ->label(__('admin.payments.assigned_courier'))
+                            ->state(fn (Order $record): string => $record->sellerOrders
+                                ->map(fn (SellerOrder $so) => $so->courier?->name)
+                                ->filter()->unique()->implode('، ') ?: '—'),
+                        TextEntry::make('payments_receipt_link')
+                            ->label(__('admin.payments.print_receipt'))
+                            ->state(fn (Order $record): string => self::paid($record) === null ? '—' : (string) __('admin.payments.print_receipt'))
+                            ->url(fn (Order $record): ?string => self::paid($record) === null
+                                ? null
+                                : route('admin.receipt', ['payment' => self::paid($record)?->uuid]))
+                            ->openUrlInNewTab(),
+                    ]),
+
                 Section::make(__('admin.orders.section_note'))
                     ->columns(2)
                     ->schema([
@@ -185,6 +228,12 @@ class OrderInfolist
                             ->placeholder(__('admin.orders.history_empty')),
                     ]),
             ]);
+    }
+
+    /** آخرین پرداختِ «پول رسید» این سفارش (اگر هنوز پولی گرفته نشده: null). */
+    private static function paid(Order $order): ?Payment
+    {
+        return $order->payments->where('status', Payment::PAID)->last();
     }
 
     /**

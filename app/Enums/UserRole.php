@@ -11,6 +11,7 @@ namespace App\Enums;
  * - manager مدیر: همه‌چیز جز کاربران
  * - staff   کارمند سفارش: سفارش‌ها و موجودی
  * - editor  ویرایشگر: اجناس و محتوا (صفحه‌ها، بنرها)
+ * - courier پیک: فقط سفارش‌های واگذارشده‌ی خودش و گرفتن پول نقد دم در (مرحله‌ی ۳)
  */
 enum UserRole: string
 {
@@ -18,6 +19,7 @@ enum UserRole: string
     case Manager = 'manager';
     case Staff = 'staff';
     case Editor = 'editor';
+    case Courier = 'courier';
 
     public function label(): string
     {
@@ -68,5 +70,32 @@ enum UserRole: string
     public function canViewActivity(): bool
     {
         return in_array($this, [self::Owner, self::Manager], true);
+    }
+
+    /** پیک: فقط سفارش‌های واگذارشده‌ی خودش را می‌بیند و فقط پول دم در را می‌گیرد. */
+    public function isCourier(): bool
+    {
+        return $this === self::Courier;
+    }
+
+    /**
+     * پول نقد را می‌گیرد و «پول گرفته شد» را ثبت می‌کند
+     * (مدیر و کارمند هر جا؛ پیک فقط سفارش خودش — بررسی‌اش در `CashCollectionService`).
+     */
+    public function canCollectCash(): bool
+    {
+        return in_array($this, [self::Owner, self::Manager, self::Staff, self::Courier], true);
+    }
+
+    /** پول گرفته‌شده‌ی پیک را تحویل می‌گیرد (صندوق). */
+    public function canReceiveCourierCash(): bool
+    {
+        return in_array($this, [self::Owner, self::Manager, self::Staff], true);
+    }
+
+    /** سفارش را به پیک واگذار می‌کند. */
+    public function canAssignCourier(): bool
+    {
+        return in_array($this, [self::Owner, self::Manager, self::Staff], true);
     }
 }

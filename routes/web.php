@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ReceiptController;
 use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CategoryController;
@@ -22,6 +23,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeController::class)->name('home');
+
+// رسید چاپی پول گرفته‌شده (فقط کاربر پنل؛ اجازه در PaymentPolicy)
+Route::get('/admin/receipts/{payment}', [ReceiptController::class, 'show'])
+    ->middleware('auth')
+    ->whereUuid('payment')
+    ->name('admin.receipt');
 
 Route::get('/page/{slug}', [PageController::class, 'show'])
     ->where('slug', '[^/]+')
