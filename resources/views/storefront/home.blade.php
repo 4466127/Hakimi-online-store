@@ -21,21 +21,24 @@
         ];
     @endphp
 
-    {{-- بنرها: چرخش خودکار حلقوی + ورق زدن دستی (scroll-snap) و دکمه‌ها --}}
+    {{-- بنرها: تمام‌عرض در کمپیوتر، گرد با حاشیه در موبایل؛ چرخش خودکار حلقوی، ورق زدن دستی،
+         دو دکمه‌ی گرد در گوشه‌ی پایین و نقطه‌های نشان‌دهنده‌ی بنر فعلی (قابل زدن) --}}
     @if ($banners->isNotEmpty())
-        <section class="container-page mt-4 md:mt-6" aria-label="{{ __('store.home.banners_label') }}"
+        <section class="mt-3 px-4 md:mt-0 md:px-0" aria-label="{{ __('store.home.banners_label') }}"
                  x-data="{
                      count: {{ $banners->count() }},
                      interval: {{ (int) config('store.home.banner_interval_ms', 1500) }},
+                     current: 0,
                      paused: false,
                      timer: null,
+                     dir() { return getComputedStyle(this.$refs.track).direction === 'rtl' ? -1 : 1; },
                      index() { const t = this.$refs.track; return Math.round(Math.abs(t.scrollLeft) / Math.max(1, t.clientWidth)); },
-                     go(step) {
+                     goTo(i) {
                          const t = this.$refs.track;
-                         const dir = getComputedStyle(t).direction === 'rtl' ? -1 : 1;
-                         const next = (this.index() + step + this.count) % this.count;
-                         t.scrollTo({ left: next * dir * t.clientWidth, behavior: 'smooth' });
+                         this.current = (i + this.count) % this.count;
+                         t.scrollTo({ left: this.current * this.dir() * t.clientWidth, behavior: 'smooth' });
                      },
+                     go(step) { this.goTo(this.index() + step); },
                      start() {
                          if (this.count < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { return; }
                          this.timer = setInterval(() => { if (! this.paused && ! document.hidden) { this.go(1); } }, this.interval);
@@ -45,8 +48,9 @@
                  x-on:mouseenter="paused = true" x-on:mouseleave="paused = false"
                  x-on:touchstart.passive="paused = true" x-on:touchend.passive="setTimeout(() => paused = false, 3000)"
                  x-on:focusin="paused = true" x-on:focusout="paused = false">
-            <div class="relative">
-                <div x-ref="track" class="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" tabindex="0">
+            <div class="relative overflow-hidden rounded-xl md:rounded-none">
+                <div x-ref="track" x-on:scroll.debounce.120ms="current = index()"
+                     class="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" tabindex="0">
                     @foreach ($banners as $banner)
                         @php
                             $alt = $banner->tr('title') ?: __('store.home.banner_alt', ['n' => \App\Support\Num::toFa((string) $loop->iteration)]);
@@ -56,29 +60,44 @@
                             @if ($banner->link_url)
                                 <a href="{{ $banner->link_url }}" @if ($banner->isExternal()) rel="noopener" @endif class="block">
                             @endif
+                                {{-- کمپیوتر: ارتفاع ثابت و نرم (۲۸۰ تا ۴۸۰ پیکسل)؛ وسط عکس همیشه دیده می‌شود --}}
                                 <img src="{{ $banner->imageUrl() }}" alt="{{ $alt }}" width="1600" height="600"
                                      @if ($loop->first) fetchpriority="high" @else loading="lazy" @endif
-                                     class="aspect-[2/1] w-full bg-gray-100 object-cover md:aspect-[8/3]">
+                                     class="aspect-[2/1] w-full bg-gray-100 object-cover md:aspect-auto md:h-[clamp(280px,30vw,480px)]">
                             @if ($banner->link_url)
                                 </a>
                             @endif
                         </div>
                     @endforeach
                 </div>
+
                 @if ($banners->count() > 1)
-                    <button type="button" x-on:click="go(-1)" aria-label="{{ __('store.home.banner_prev') }}"
-                            class="absolute start-2 top-1/2 hidden size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow md:flex">
-                        @svg('heroicon-o-chevron-right', 'size-5 rtl:rotate-0 ltr:rotate-180')
-                    </button>
-                    <button type="button" x-on:click="go(1)" aria-label="{{ __('store.home.banner_next') }}"
-                            class="absolute end-2 top-1/2 hidden size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow md:flex">
-                        @svg('heroicon-o-chevron-left', 'size-5 rtl:rotate-0 ltr:rotate-180')
-                    </button>
+                    {{-- نقطه‌ها: بنر فعلی کشیده‌تر --}}
+                    <div class="absolute inset-x-0 bottom-2 flex justify-center gap-1 md:bottom-4">
+                        @foreach ($banners as $banner)
+                            <button type="button" x-on:click="goTo({{ $loop->index }})"
+                                    aria-label="{{ __('store.home.banner_go', ['n' => \App\Support\Num::toFa((string) $loop->iteration)]) }}"
+                                    x-bind:aria-current="current === {{ $loop->index }} ? 'true' : 'false'"
+                                    class="flex h-5 items-center px-0.5">
+                                <span class="block h-1.5 rounded-full bg-white shadow transition-[width]"
+                                      x-bind:class="current === {{ $loop->index }} ? 'w-5 opacity-100' : 'w-1.5 opacity-60'"></span>
+                            </button>
+                        @endforeach
+                    </div>
+
+                    {{-- دو دکمه‌ی گرد در گوشه‌ی پایین (فقط کمپیوتر؛ در موبایل با انگشت) --}}
+                    <div class="absolute end-4 bottom-4 hidden gap-2 md:flex lg:end-8">
+                        <button type="button" x-on:click="go(-1)" aria-label="{{ __('store.home.banner_prev') }}"
+                                class="flex size-11 items-center justify-center rounded-full bg-white text-gray-800 shadow-md hover:bg-gray-50">
+                            @svg('heroicon-o-arrow-right', 'size-5 ltr:rotate-180')
+                        </button>
+                        <button type="button" x-on:click="go(1)" aria-label="{{ __('store.home.banner_next') }}"
+                                class="flex size-11 items-center justify-center rounded-full bg-white text-gray-800 shadow-md hover:bg-gray-50">
+                            @svg('heroicon-o-arrow-left', 'size-5 ltr:rotate-180')
+                        </button>
+                    </div>
                 @endif
             </div>
-            @if ($banners->count() > 1)
-                <p class="mt-1.5 text-center text-xs text-gray-500 md:hidden">{{ __('store.home.banner_swipe', ['count' => \App\Support\Num::toFa((string) $banners->count())]) }}</p>
-            @endif
         </section>
     @endif
 

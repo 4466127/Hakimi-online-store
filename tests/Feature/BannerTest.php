@@ -54,6 +54,8 @@ class BannerTest extends TestCase
         $this->assertStringContainsString('interval: 1500', $html);         // هر ۱٫۵ ثانیه
         $this->assertStringContainsString('% this.count', $html);           // حلقوی: بعد از آخری، اولی
         $this->assertStringContainsString('prefers-reduced-motion', $html); // «حرکت کمتر» دستگاه رعایت می‌شود
+        $this->assertStringContainsString(__('store.home.banner_go', ['n' => '۲']), $html); // نقطه‌ی هر بنر
+        $this->assertStringContainsString(__('store.home.banner_next'), $html);             // دکمه‌های گوشه
     }
 
     public function test_home_without_banners_has_no_banner_area(): void
