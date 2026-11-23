@@ -60,6 +60,8 @@ class CheckoutPage
         }
 
         $deliveryPossible = $provinces->isNotEmpty() && collect($days)->contains(fn (array $options) => $options !== []);
+        // تحویل حضوری هم روز می‌خواهد (بی کرایه): تا جنس در نمایندگی آماده شود
+        $pickupDays = $pickupEnabled ? $this->delivery->pickupOptions() : [];
 
         return [
             'lines' => $lines,
@@ -68,10 +70,11 @@ class CheckoutPage
             'days' => $days,
             'tooHeavy' => $tooHeavy,
             'deliveryPossible' => $deliveryPossible,
-            'pickupEnabled' => $pickupEnabled,
+            'pickupEnabled' => $pickupEnabled && $pickupDays !== [],
+            'pickupDays' => $pickupDays,
             'points' => $points,
             'methods' => $this->paymentMethods(),
-            'defaults' => $this->defaults($customer, $deliveryPossible, $pickupEnabled, $provinces, $days),
+            'defaults' => $this->defaults($customer, $deliveryPossible, $pickupEnabled && $pickupDays !== [], $provinces, $days, $pickupDays),
         ];
     }
 
@@ -115,7 +118,9 @@ class CheckoutPage
             'purchaser_email' => $customer?->email,
             'delivery_method' => $method,
             'province_id' => $province?->id,
-            'delivery_date' => $firstDay?->dateString(),
+            'delivery_date' => $method === DeliveryCalculator::METHOD_PICKUP
+                ? ($pickupDays[0] ?? null)?->dateString()
+                : $firstDay?->dateString(),
         ];
     }
 }

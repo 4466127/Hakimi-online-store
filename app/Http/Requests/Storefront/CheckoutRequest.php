@@ -31,6 +31,11 @@ class CheckoutRequest extends FormRequest
         $purchaserPhone = Phone::normalize((string) $this->input('purchaser_phone')) ?? $this->input('purchaser_phone');
         $isGift = $this->boolean('is_gift');
 
+        // روز تحویل حضوری خانه‌ی جدا دارد (`pickup_date`)؛ در سرور همان «روز تحویل» سفارش است
+        if ($this->input('delivery_method') === DeliveryCalculator::METHOD_PICKUP && $this->filled('pickup_date')) {
+            $this->merge(['delivery_date' => $this->input('pickup_date')]);
+        }
+
         $this->merge([
             'purchaser_name' => trim((string) $this->input('purchaser_name')),
             'purchaser_phone' => $purchaserPhone,
@@ -65,12 +70,14 @@ class CheckoutRequest extends FormRequest
             'district' => ['nullable', 'string', 'max:100'],
             'address_line' => [$isDelivery ? 'required' : 'nullable', 'string', 'min:5', 'max:500'],
             'delivery_instructions' => ['nullable', 'string', 'max:500'],
-            'delivery_date' => [$isDelivery ? 'required' : 'nullable', 'date_format:Y-m-d'],
+            // روز برای هر دو روش لازم است (حضوری هم روز گرفتن جنس را می‌خواهد)
+            'delivery_date' => ['required', 'date_format:Y-m-d'],
             // خالی = اولین نمایندگی فعال (سرویس خودش انتخاب می‌کند)
             'collection_point_id' => ['nullable', 'integer', Rule::exists('collection_points', 'id')->where('is_active', true)],
 
             // پرداخت و یادداشت
             'payment_method_code' => ['required', 'string', Rule::exists('payment_methods', 'code')->where('is_active', true)],
+            'pickup_date' => ['nullable', 'date_format:Y-m-d'],
             'customer_note' => ['nullable', 'string', 'max:500'],
         ];
     }
@@ -108,7 +115,7 @@ class CheckoutRequest extends FormRequest
             district: $isDelivery ? $this->cleaned('district') : null,
             addressLine: $isDelivery ? $this->cleaned('address_line') : null,
             deliveryInstructions: $isDelivery ? $this->cleaned('delivery_instructions') : null,
-            deliveryDate: $isDelivery ? $this->string('delivery_date')->toString() : null,
+            deliveryDate: $this->string('delivery_date')->toString(),
             collectionPointId: $isDelivery ? null : ($this->filled('collection_point_id') ? $this->integer('collection_point_id') : null),
             customerNote: $this->cleaned('customer_note'),
             customerId: $this->user('customer')?->id,

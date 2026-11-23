@@ -41,6 +41,11 @@
                             </span>
                         </li>
                         <li>
+                            <a href="{{ route('order.track') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
+                                @svg('heroicon-o-magnifying-glass', 'size-5') {{ __('checkout.track.title') }}
+                            </a>
+                        </li>
+                        <li>
                             <a href="{{ $seller ? route('seller.onboarding') : route('seller.landing') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
                                 @svg('heroicon-o-building-storefront', 'size-5') {{ __('customer.account.menu.seller') }}
                             </a>

@@ -60,6 +60,12 @@ class OrderItem extends Model
         return $this->belongsTo(Product::class)->withTrashed();
     }
 
+    /** فروشنده‌ی این خط؛ خالی = جنس خود بازارک. */
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(Seller::class);
+    }
+
     /** تعداد فعال (نه لغو و نه برگشت‌شده). */
     public function activeQty(): int
     {

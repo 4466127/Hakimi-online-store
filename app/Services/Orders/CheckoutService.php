@@ -23,6 +23,7 @@ use App\Services\Catalog\ProductCatalog;
 use App\Services\Commission\AppliedRate;
 use App\Services\Commission\CommissionService;
 use App\Services\Delivery\DeliveryCalculator;
+use App\Services\Settings;
 use App\Services\StoreInfo;
 use App\Support\Money;
 use Illuminate\Support\Collection;
@@ -42,6 +43,9 @@ use Illuminate\Support\Facades\DB;
  *   - خطا (موجودی، روز تحویل، روش پرداخت…) ← CheckoutException و هیچ ردیفی ساخته نمی‌شود.
  *
  * روش‌های پرداخت این مرحله: `cod` (درِ خانه) و `cash_point` (حضوری). درگاه آنلاین مرحله‌ی ۵ است.
+ *
+ * هر دو روش تحویل **روز** می‌خواهند: درِ خانه با کرایه‌ی روز و وزن، حضوری بی کرایه (روز فقط برای
+ * آماده شدن جنس در نمایندگی). شماره‌ی سفارش فقط عدد است و هر سفارش یک **کد تحویل** پنج‌رقمی دارد.
  */
 class CheckoutService
 {
@@ -61,6 +65,7 @@ class CheckoutService
      */
     public function place(Cart $cart, CheckoutData $data): Order
     {
+        $this->checkDailyLimit($data);
         $method = $this->paymentMethod($data);
         [$zone, $point] = $this->deliveryTarget($data);
 
@@ -71,6 +76,14 @@ class CheckoutService
             $grams = 0;
             $deliveryFee = $this->delivery->pickupFee();
             $deliveryDate = null;
+            if ($data->deliveryMethod === DeliveryCalculator::METHOD_PICKUP) {
+                // حضوری بی کرایه است، ولی روز می‌خواهد تا جنس در نمایندگی آماده شود (۲ قوس ۱۴۰۵)
+                $option = $this->delivery->pickupOption((string) $data->deliveryDate);
+                if ($option === null) {
+                    throw new CheckoutException('delivery_date_invalid');
+                }
+                $deliveryDate = $option->dateString();
+            }
             if ($data->deliveryMethod === DeliveryCalculator::METHOD_DELIVERY) {
                 $grams = $this->delivery->totalWeight($zone, $lines->map(fn (array $l) => ['variant' => $l['variant'], 'qty' => $l['qty']]));
                 if ($this->delivery->isTooHeavy($zone, $grams)) {
@@ -130,6 +143,8 @@ class CheckoutService
                 'payment_status' => 'awaiting_collection',
                 'paid_total' => '0.00',
                 'refunded_total' => '0.00',
+                // کد تحویل: مشتری آن را هنگام گرفتن جنس به پیک یا نمایندگی می‌گوید
+                'delivery_code' => Order::generateDeliveryCode(),
             ])->save();
             $order->forceFill(['number' => Order::numberFor($order->id)])->save();
 
@@ -227,6 +242,40 @@ class CheckoutService
         }
 
         return [$zone, null];
+    }
+
+    /**
+     * سقف سفارش هر مشتری در ۲۴ ساعت (خواست صاحب پروژه، ۲ قوس ۱۴۰۵).
+     *
+     * جلوی کسی را می‌گیرد که پشت سر هم سفارش «پرداخت هنگام تحویل» یا «حضوری» ثبت کند و هیچ‌وقت
+     * نگیرد. شمارش با **شماره‌ی موبایل خریدار** (و حساب مشتری، اگر وارد شده باشد) است، نه با IP یا
+     * کوکی، تا با عوض کردن مرورگر دور نخورد. هر وضعیتی حساب می‌شود (حتی لغو‌شده) تا سقف معنا داشته
+     * باشد؛ مدیر در پنل سفارش دستی می‌سازد و این سقف روی آن نیست (`source !== 'web'`).
+     * تنظیم: «تنظیمات فروشگاه ← سقف سفارش روزانه»؛ ۰ = بی سقف.
+     */
+    private function checkDailyLimit(CheckoutData $data): void
+    {
+        if ($data->source !== 'web') {
+            return;
+        }
+        $max = (int) app(Settings::class)->get('orders.max_per_day');
+        if ($max < 1) {
+            return;
+        }
+
+        $placed = Order::query()
+            ->where('placed_at', '>=', now()->subDay())
+            ->where(function ($query) use ($data): void {
+                $query->where('purchaser_phone', $data->purchaserPhone);
+                if ($data->customerId !== null) {
+                    $query->orWhere('customer_id', $data->customerId);
+                }
+            })
+            ->count();
+
+        if ($placed >= $max) {
+            throw new CheckoutException('too_many_orders');
+        }
     }
 
     private function checkAmountLimits(PaymentMethod $method, string $total): void

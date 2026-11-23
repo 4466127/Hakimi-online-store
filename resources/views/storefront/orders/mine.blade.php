@@ -25,7 +25,10 @@
         <div class="mx-auto max-w-3xl">
             <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <h1 class="text-xl font-bold text-gray-900">{{ __('checkout.mine.heading') }}</h1>
-                <a href="{{ route('account') }}" class="text-sm font-medium text-brand-700 hover:underline">{{ __('customer.account.title') }}</a>
+                <div class="flex items-center gap-4 text-sm font-medium">
+                    <a href="{{ route('order.track') }}" class="text-brand-700 hover:underline">{{ __('checkout.track.title') }}</a>
+                    <a href="{{ route('account') }}" class="text-brand-700 hover:underline">{{ __('customer.account.title') }}</a>
+                </div>
             </div>
 
             <x-storefront.flash />

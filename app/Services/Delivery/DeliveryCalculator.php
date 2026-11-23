@@ -33,12 +33,61 @@ class DeliveryCalculator
     private const SCAN_DAYS = 60;
 
     /**
-     * تحویل حضوری از دفتر مرکزی هیچ کرایه‌ای ندارد (تصمیم صاحب پروژه، ۲۶ عقرب ۱۴۰۵)؛ نه روز می‌خواهد
-     * نه وزن و نه آدرس مشتری. فعال بودنش با StoreInfo::pickupEnabled() است.
+     * تحویل حضوری هیچ کرایه‌ای ندارد (تصمیم صاحب پروژه، ۲۶ عقرب ۱۴۰۵)؛ نه وزن و نه آدرس مشتری.
+     * ولی **روز** می‌خواهد (خواست صاحب پروژه، ۲ قوس ۱۴۰۵): مشتری انتخاب می‌کند کدام روز به
+     * نمایندگی برود تا جنس تا آن روز آماده باشد (`pickupOptions`). فعال بودنش با
+     * StoreInfo::pickupEnabled() است.
      */
     public function pickupFee(): string
     {
         return Money::of(0);
+    }
+
+    /**
+     * روزهایی که مشتری می‌تواند جنس را حضوری از نمایندگی بگیرد: مثل روزهای تحویل، ولی **بی کرایه**.
+     * زودترین روز فردا است (اگر از ساعت قطع نگذشته)، وگرنه پس‌فردا؛ روزهای بی کار رد می‌شود.
+     * ساعت قطع، روزهای بی کار و تعداد روزها از منطقه‌ی تحویل فعال می‌آید؛ اگر منطقه‌ای نبود،
+     * از `config('store.pickup')`.
+     *
+     * @return list<DeliveryOption>
+     */
+    public function pickupOptions(?CarbonInterface $now = null): array
+    {
+        $zone = DeliveryZone::query()->active()->with('slots')->first();
+        $slots = $zone?->slots->where('is_active', true)->count() ?? 0;
+
+        $cutoff = (int) ($zone->cutoff_hour ?? config('store.pickup.cutoff_hour', 16));
+        $daysOff = $zone === null ? (array) config('store.pickup.days_off', [5]) : (array) $zone->days_off;
+        $count = $slots > 0 ? $slots : (int) config('store.pickup.days', 5);
+
+        $zero = Money::of(0);
+        $tomorrow = $this->today($now)->addDay();
+
+        $options = [];
+        foreach ($this->dates($cutoff, $daysOff, $count, $now) as $i => $date) {
+            $options[] = new DeliveryOption(
+                index: $i + 1,
+                date: $date,
+                slotFee: $zero,
+                weightFee: $zero,
+                total: $zero,
+                isTomorrow: $date->isSameDay($tomorrow),
+            );
+        }
+
+        return $options;
+    }
+
+    /** گزینه‌ی روزِ انتخاب‌شده برای تحویل حضوری (تاریخ Y-m-d)؛ null اگر آن روز در لیست نیست. */
+    public function pickupOption(string $date, ?CarbonInterface $now = null): ?DeliveryOption
+    {
+        foreach ($this->pickupOptions($now) as $option) {
+            if ($option->dateString() === $date) {
+                return $option;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -181,12 +230,23 @@ class DeliveryCalculator
      */
     private function deliveryDates(DeliveryZone $zone, int $count, ?CarbonInterface $now): array
     {
+        return $this->dates((int) $zone->cutoff_hour, (array) $zone->days_off, $count, $now);
+    }
+
+    /**
+     * روزهای کاری پیش‌رو با ساعت قطع و روزهای بی کار دلخواه.
+     *
+     * @param  array<int|string>  $daysOff
+     * @return list<CarbonImmutable>
+     */
+    private function dates(int $cutoffHour, array $daysOff, int $count, ?CarbonInterface $now): array
+    {
         $now = $this->now($now);
-        $cursor = $now->startOfDay()->addDays($now->hour >= $zone->cutoff_hour ? 2 : 1);
-        $off = array_map('intval', (array) $zone->days_off);
+        $cursor = $now->startOfDay()->addDays($now->hour >= $cutoffHour ? 2 : 1);
+        $off = array_map('intval', $daysOff);
 
         $dates = [];
-        for ($i = 0; $i < self::SCAN_DAYS && count($dates) < $count; $i++, $cursor = $cursor->addDay()) {
+        for ($i = 0; $i < self::SCAN_DAYS && count($dates) < max(1, $count); $i++, $cursor = $cursor->addDay()) {
             if (! in_array($cursor->dayOfWeekIso, $off, true)) {
                 $dates[] = $cursor;
             }

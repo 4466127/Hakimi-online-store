@@ -66,7 +66,10 @@ class CheckoutServiceTest extends TestCase
 
         $order = app(CheckoutService::class)->place($cart, $this->checkoutData());
 
-        $this->assertSame('HS-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT), $order->number);
+        // شماره‌ی سفارش فقط عدد است (خواست صاحب پروژه، ۲ قوس ۱۴۰۵) و کد تحویل پنج‌رقمی دارد
+        $this->assertSame(Order::numberFor($order->id), $order->number);
+        $this->assertMatchesRegularExpression('/^\d{9}$/', (string) $order->number);
+        $this->assertMatchesRegularExpression('/^\d{5}$/', (string) $order->delivery_code);
         $this->assertSame('pending', $order->status);
         $this->assertSame('awaiting_collection', $order->payment_status);
         $this->assertSame('cod', $order->payment_method_code);
@@ -247,7 +250,8 @@ class CheckoutServiceTest extends TestCase
         $this->assertSame('0.00', $order->delivery_fee);
         $this->assertSame('1000.00', $order->total);
         $this->assertNull($order->address_line);
-        $this->assertNull($order->delivery_date);
+        // حضوری هم روز دارد (جنس تا آن روز در نمایندگی آماده می‌شود) ولی کرایه ندارد
+        $this->assertSame($this->firstPickupDate(), $order->delivery_date->format('Y-m-d'));
         $this->assertSame($point->id, $order->collection_point_id);
         $this->assertSame('cash_point', $order->payment_method_code);
         $this->assertSame('awaiting_collection', $order->payment_status);

@@ -33,13 +33,14 @@ class AdminAccessTest extends TestCase
             'customers' => '/admin/customers',
             'sellers' => '/admin/sellers',
             'products' => '/admin/products',
+            'orders' => '/admin/orders',
         ];
 
         // چه کسی کدام بخش را می‌بیند
         $allowed = [
-            'owner' => ['dashboard', 'users', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products'],
-            'manager' => ['dashboard', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products'],
-            'staff' => ['dashboard', 'customers'],
+            'owner' => ['dashboard', 'users', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders'],
+            'manager' => ['dashboard', 'settings', 'provinces', 'pages', 'activity', 'categories', 'customers', 'sellers', 'products', 'orders'],
+            'staff' => ['dashboard', 'customers', 'orders'],
             'editor' => ['dashboard', 'pages', 'categories', 'products'],
         ];
 

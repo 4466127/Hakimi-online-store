@@ -50,11 +50,12 @@ class OrderController extends Controller
             'phone' => ['required', 'string', 'max:20'],
         ]);
 
-        $number = Order::normalizeNumber($data['number']);
+        // شماره‌ی عددی تازه و شکل قدیمی «HS-…» هر دو قبول است
+        $numbers = Order::numberCandidates($data['number']);
         $phone = Phone::normalize($data['phone']);
 
-        $order = $number === null || $phone === null ? null : Order::query()
-            ->where('number', $number)
+        $order = $numbers === [] || $phone === null ? null : Order::query()
+            ->whereIn('number', $numbers)
             ->where(fn ($q) => $q->where('purchaser_phone', $phone)->orWhere('recipient_phone', $phone))
             ->first();
 

@@ -65,6 +65,16 @@
                         </div>
                     </dl>
 
+                    @if ($order->delivery_code && $order->isOpen())
+                        <div class="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
+                            <p class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <span class="text-sm font-bold text-brand-900">{{ __('checkout.order.code_heading') }}:</span>
+                                <span class="text-2xl font-bold tracking-widest text-brand-900" dir="ltr">{{ Num::toFa($order->delivery_code) }}</span>
+                            </p>
+                            <p class="mt-1.5 text-xs leading-6 text-brand-900">{{ __('checkout.order.code_help') }}</p>
+                        </div>
+                    @endif
+
                     @if ($order->needs_stock_check && $order->isOpen())
                         <p class="alert alert-warning mt-4" role="status">{{ __('checkout.order.stock_check') }}</p>
                     @endif
@@ -114,6 +124,14 @@
                         </div>
 
                         @if ($order->isPickup())
+                            @if ($order->delivery_date)
+                                <div class="flex flex-wrap gap-x-2">
+                                    <dt class="text-gray-500">{{ __('checkout.order.pickup_day') }}:</dt>
+                                    <dd class="text-gray-900">
+                                        {{ Jalali::weekday($order->delivery_date->format('Y-m-d')) }}، {{ Jalali::formatLong($order->delivery_date->format('Y-m-d')) }}
+                                    </dd>
+                                </div>
+                            @endif
                             @if ($order->collectionPoint)
                                 <div class="flex flex-wrap gap-x-2">
                                     <dt class="text-gray-500">{{ __('checkout.order.pickup_point') }}:</dt>
@@ -221,9 +239,10 @@
                         @endif
                         @auth('customer')
                             <a href="{{ route('account.orders') }}" class="btn btn-outline w-full">{{ __('checkout.order.my_orders') }}</a>
-                        @else
-                            <a href="{{ route('order.track') }}" class="btn btn-outline w-full">{{ __('checkout.order.track_other') }}</a>
                         @endauth
+                        <a href="{{ route('order.track') }}" class="btn btn-outline w-full">
+                            @svg('heroicon-o-magnifying-glass', 'size-5') {{ __('checkout.order.track') }}
+                        </a>
                         <a href="{{ route('home') }}" class="btn btn-primary w-full">{{ __('checkout.order.back_home') }}</a>
                     </div>
                 </div>

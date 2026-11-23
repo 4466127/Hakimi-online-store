@@ -18,7 +18,7 @@
     $subtotal = $totals['subtotal'];
     $kg = Num::format(bcdiv((string) $totals['weight'], '1000', 1), 1);
 
-    // جمع‌های آماده‌ی سرور: کلید = «کد پرداخت|pickup» یا «کد پرداخت|شناسه‌ی ولایت|تاریخ»
+    // جمع‌های آماده‌ی سرور: کلید = «کد پرداخت|pickup|تاریخ» یا «کد پرداخت|شناسه‌ی ولایت|تاریخ»
     $calc = [];
     foreach ($methods as $row) {
         $code = $row['method']->code;
@@ -26,11 +26,13 @@
         $feeText = Money::compare($paymentFee, 0) > 0 ? Money::format($paymentFee) : null;
 
         if ($row['pickup'] && $pickupEnabled) {
-            $calc[$code.'|pickup'] = [
-                'delivery' => __('checkout.totals.free'),
-                'fee' => $feeText,
-                'total' => Money::format(Money::add($subtotal, $paymentFee)),
-            ];
+            foreach ($pickupDays as $option) {
+                $calc[$code.'|pickup|'.$option->dateString()] = [
+                    'delivery' => __('checkout.totals.free'),
+                    'fee' => $feeText,
+                    'total' => Money::format(Money::add($subtotal, $paymentFee)),
+                ];
+            }
         }
         if ($row['delivery']) {
             foreach ($days as $provinceId => $options) {
@@ -43,6 +45,12 @@
                 }
             }
         }
+    }
+
+    // روزهای هر حالت (برای اینکه با عوض شدن روش تحویل یا ولایت، روزِ انتخاب‌شده خودکار درست شود)
+    $dayLists = ['pickup' => array_map(fn ($o) => $o->dateString(), $pickupDays)];
+    foreach ($days as $provinceId => $options) {
+        $dayLists['delivery|'.$provinceId] = array_map(fn ($o) => $o->dateString(), $options);
     }
 
     // کدام روش پرداخت با کدام روش تحویل می‌خواند (برای عوض شدن خودکار انتخاب)
@@ -74,9 +82,13 @@
                   point: @js((string) old('collection_point_id', $points->first()->id ?? '')),
                   calc: @js($calc),
                   fits: @js($fits),
+                  dayLists: @js($dayLists),
+                  get dayList() {
+                      return this.dayLists[this.method === 'pickup' ? 'pickup' : 'delivery|' + this.province] ?? [];
+                  },
                   get summary() {
                       const key = this.method === 'pickup'
-                          ? this.payment + '|pickup'
+                          ? this.payment + '|pickup|' + this.day
                           : this.payment + '|' + this.province + '|' + this.day;
                       return this.calc[key] ?? null;
                   },
@@ -84,8 +96,12 @@
                       const allowed = this.fits[this.method] ?? [];
                       if (! allowed.includes(this.payment)) { this.payment = allowed[0] ?? ''; }
                   },
+                  syncDay() {
+                      const days = this.dayList;
+                      if (! days.includes(this.day)) { this.day = days[0] ?? ''; }
+                  },
               }"
-              x-init="$watch('method', () => syncPayment())"
+              x-init="$watch('method', () => { syncPayment(); syncDay(); }); $watch('province', () => syncDay())"
               class="grid gap-6 lg:grid-cols-[1fr_22rem] lg:items-start">
             @csrf
 
@@ -203,7 +219,7 @@
                                         <label class="flex cursor-pointer items-center gap-3 rounded-xl border p-3"
                                                :class="day === @js($option->dateString()) ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'">
                                             <input type="radio" name="delivery_date" value="{{ $option->dateString() }}" x-model="day"
-                                                   class="size-5 text-brand-600" x-bind:disabled="province !== @js((string) $province->id)">
+                                                   class="size-5 text-brand-600" x-bind:disabled="method !== 'delivery' || province !== @js((string) $province->id)">
                                             <span class="flex-1 text-sm">
                                                 <span class="font-medium text-gray-900">{{ $option->dayName() }}</span>
                                                 <span class="text-gray-500"> — {{ $option->dateLong() }}</span>
@@ -246,6 +262,30 @@
                             @if ($store->pickupNote())
                                 <p class="form-help mt-2">{{ $store->pickupNote() }}</p>
                             @endif
+
+                            {{-- روز گرفتن جنس (بی کرایه): تا آن روز جنس در نمایندگی آماده می‌شود --}}
+                            <div class="mt-5">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ __('checkout.delivery.pickup_day_heading') }} <span class="req" aria-hidden="true">*</span>
+                                </p>
+                                <p class="form-help mt-1">{{ __('checkout.delivery.pickup_day_help') }}</p>
+                                <div class="mt-3 space-y-2">
+                                    @foreach ($pickupDays as $option)
+                                        <label class="flex cursor-pointer items-center gap-3 rounded-xl border p-3"
+                                               :class="day === @js($option->dateString()) ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'">
+                                            {{-- نام جدا از روز تحویل درِ خانه: اگر نام یکی باشد، مرورگر فقط آخرین
+                                                 رادیوی هم‌نام را «انتخاب‌شده» نگه می‌دارد و روز درِ خانه از دست می‌رود. --}}
+                                            <input type="radio" name="pickup_date" value="{{ $option->dateString() }}" x-model="day"
+                                                   class="size-5 text-brand-600" x-bind:disabled="method !== 'pickup'">
+                                            <span class="flex-1 text-sm">
+                                                <span class="font-medium text-gray-900">{{ $option->dayName() }}</span>
+                                                <span class="text-gray-500"> — {{ $option->dateLong() }}</span>
+                                            </span>
+                                            <span class="text-sm font-medium text-green-700">{{ __('checkout.totals.free') }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
                         </fieldset>
                     @endif
                 </section>

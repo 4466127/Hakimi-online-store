@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Province;
 use App\Services\Cart\CartService;
 use App\Services\Settings;
+use App\Support\Num;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsOrders;
 use Tests\TestCase;
@@ -47,6 +48,21 @@ class CheckoutPageTest extends TestCase
             'address_line' => 'کارته‌ی چهار، سرک اول، خانه‌ی سبز',
             'delivery_date' => $this->firstDeliveryDate(),
             'payment_method_code' => 'cod',
+        ], $overrides);
+    }
+
+    /** @return array<string, mixed> فورم تحویل حضوری (روز لازم است، کرایه ندارد) */
+    private function pickupForm(array $overrides = []): array
+    {
+        app(Settings::class)->set('delivery.pickup_enabled', true);
+        app(Settings::class)->set('store.address', 'کابل، چهارراهی قمبر');
+
+        return array_merge([
+            'purchaser_name' => 'احمد حکیمی',
+            'purchaser_phone' => '0700111222',
+            'delivery_method' => 'pickup',
+            'delivery_date' => $this->firstPickupDate(),
+            'payment_method_code' => 'cash_point',
         ], $overrides);
     }
 
@@ -184,20 +200,12 @@ class CheckoutPageTest extends TestCase
         $this->assertSame(0, Order::query()->count());
     }
 
-    public function test_pickup_order_has_no_delivery_fee(): void
+    public function test_pickup_order_has_a_day_but_no_delivery_fee(): void
     {
-        app(Settings::class)->set('delivery.pickup_enabled', true);
-        app(Settings::class)->set('store.address', 'کابل، چهارراهی قمبر');
-
         $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
         $this->guestCart([[$variant, 1]]);
 
-        $this->post('/checkout', [
-            'purchaser_name' => 'احمد حکیمی',
-            'purchaser_phone' => '0700111222',
-            'delivery_method' => 'pickup',
-            'payment_method_code' => 'cash_point',
-        ]);
+        $this->post('/checkout', $this->pickupForm());
 
         $order = Order::query()->firstOrFail();
         $this->assertSame('pickup', $order->delivery_method);
@@ -205,6 +213,117 @@ class CheckoutPageTest extends TestCase
         $this->assertSame('900.00', $order->total);
         $this->assertNotNull($order->collection_point_id);
         $this->assertNull($order->address_line);
+        // روز گرفتن جنس: خواست صاحب پروژه (۲ قوس ۱۴۰۵)
+        $this->assertSame($this->firstPickupDate(), $order->delivery_date->format('Y-m-d'));
+    }
+
+    /**
+     * فورم روز حضوری را در خانه‌ی جدای `pickup_date` می‌فرستد (اگر نام هر دو گروه یکی باشد،
+     * مرورگر روز درِ خانه را از انتخاب درمی‌آورد — این اشکال در آزمون مرورگر واقعی پیدا شد).
+     */
+    public function test_pickup_day_can_come_from_its_own_field(): void
+    {
+        $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
+        $this->guestCart([[$variant, 1]]);
+
+        $form = $this->pickupForm();
+        unset($form['delivery_date']);
+        $form['pickup_date'] = $this->firstPickupDate();
+
+        $this->post('/checkout', $form);
+
+        $order = Order::query()->firstOrFail();
+        $this->assertSame('pickup', $order->delivery_method);
+        $this->assertSame($this->firstPickupDate(), $order->delivery_date->format('Y-m-d'));
+    }
+
+    public function test_pickup_needs_a_day(): void
+    {
+        $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
+        $this->guestCart([[$variant, 1]]);
+
+        $this->post('/checkout', $this->pickupForm(['delivery_date' => '']))
+            ->assertSessionHasErrors('delivery_date');
+
+        $this->assertSame(0, Order::query()->count());
+    }
+
+    public function test_pickup_day_must_be_one_of_the_offered_days(): void
+    {
+        $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
+        $this->guestCart([[$variant, 1]]);
+
+        $this->post('/checkout', $this->pickupForm(['delivery_date' => '2020-01-01']))
+            ->assertSessionHas('error', __('checkout.errors.delivery_date_invalid'));
+
+        $this->assertSame(0, Order::query()->count());
+    }
+
+    public function test_pickup_page_shows_the_pickup_days(): void
+    {
+        app(Settings::class)->set('store.address', 'کابل، چهارراهی قمبر');
+        $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
+        $this->guestCart([[$variant, 1]]);
+
+        $this->get('/checkout')
+            ->assertOk()
+            ->assertSee(__('checkout.delivery.pickup_day_heading'))
+            ->assertSee($this->firstPickupDate());
+    }
+
+    public function test_order_number_is_digits_only_and_has_a_delivery_code(): void
+    {
+        $variant = $this->sellableVariant(null, null, ['price' => '900.00', 'stock_qty' => 9]);
+        $this->guestCart([[$variant, 1]]);
+
+        $this->post('/checkout', $this->formData());
+
+        $order = Order::query()->firstOrFail();
+        $this->assertMatchesRegularExpression('/^\d{9}$/', (string) $order->number);
+        $this->assertSame(Order::numberFor($order->id), $order->number);
+        $this->assertMatchesRegularExpression('/^\d{5}$/', (string) $order->delivery_code);
+
+        // کد تحویل برای مشتری دیده می‌شود (باید آن را به پیک بگوید)
+        $this->get(route('order.show', ['uuid' => $order->uuid]))
+            ->assertOk()
+            ->assertSee(__('checkout.order.code_heading'))
+            ->assertSee(Num::toFa((string) $order->delivery_code));
+    }
+
+    public function test_daily_order_limit_blocks_the_third_order(): void
+    {
+        app(Settings::class)->set('orders.max_per_day', 2);
+        $variant = $this->sellableVariant(null, null, ['price' => '100.00', 'stock_qty' => 50]);
+
+        foreach ([1, 2] as $n) {
+            $this->guestCart([[$variant, 1]]);
+            $this->post('/checkout', $this->formData());
+        }
+        $this->assertSame(2, Order::query()->count());
+
+        $this->guestCart([[$variant, 1]]);
+        $this->post('/checkout', $this->formData())
+            ->assertSessionHas('error', __('checkout.errors.too_many_orders'));
+
+        $this->assertSame(2, Order::query()->count());
+
+        // شماره‌ی دیگر محدود نیست
+        $this->guestCart([[$variant, 1]]);
+        $this->post('/checkout', $this->formData(['purchaser_phone' => '0788111222']));
+        $this->assertSame(3, Order::query()->count());
+    }
+
+    public function test_daily_order_limit_zero_means_no_limit(): void
+    {
+        app(Settings::class)->set('orders.max_per_day', 0);
+        $variant = $this->sellableVariant(null, null, ['price' => '100.00', 'stock_qty' => 50]);
+
+        foreach ([1, 2, 3] as $n) {
+            $this->guestCart([[$variant, 1]]);
+            $this->post('/checkout', $this->formData());
+        }
+
+        $this->assertSame(3, Order::query()->count());
     }
 
     public function test_member_order_is_attached_to_the_customer_and_listed(): void
@@ -235,8 +354,15 @@ class CheckoutPageTest extends TestCase
 
         $this->get('/track')->assertOk()->assertSee(__('checkout.track.heading'));
 
-        $this->post('/track', ['number' => 'hs-'.(int) substr((string) $order->number, 3), 'phone' => '۰۷۰۰۱۱۱۲۲۲'])
+        // شماره‌ی عددی، با ارقام فارسی و فاصله
+        $this->post('/track', ['number' => Num::toFa((string) $order->number), 'phone' => '۰۷۰۰۱۱۱۲۲۲'])
             ->assertRedirect(route('order.show', ['uuid' => $order->uuid]));
+
+        // شکل قدیمی «HS-000123» هم برای سفارش‌های قدیمی کار می‌کند
+        $old = $this->placeOrder([[$this->sellableVariant(null, null, ['price' => '600.00', 'stock_qty' => 9]), 1]]);
+        $old->forceFill(['number' => 'HS-'.str_pad((string) $old->id, 6, '0', STR_PAD_LEFT)])->save();
+        $this->post('/track', ['number' => 'hs-'.$old->id, 'phone' => '0700111222'])
+            ->assertRedirect(route('order.show', ['uuid' => $old->uuid]));
     }
 
     public function test_tracking_with_wrong_phone_finds_nothing(): void

@@ -374,14 +374,15 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 
 ### چ-۲) طرح v2 — سفارش چندفروشنده، پرداخت، بازپرداخت (**تأیید شد ۲ قوس ۱۴۰۵**؛ بخش اول migrate شد)
 
-> **وضعیت migrate:** `orders`، `seller_orders` (با ستون‌های صورت مالی)، `order_items` (با کپی کمیسیون؛ بی `commission_rule_id` FK)، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` ← **ساخته شد** (`2026_11_22_000100/000200`). ستون‌های ساخته‌نشده‌ی این بخش (کوپن/UTM/آدرس صورتحساب در `orders`، `exchange_rate`) و جدول‌های `payment_events`، `payment_allocations`، `commission_rules`، `seller_settlement_items`، `refunds`، `refund_items`، `order_returns*`، ستون‌های تازه‌ی `seller_transactions`/`seller_settlements`/`sellers` و `activity_log.reason` و نقش `courier` ← **بعداً** در مرحله‌ی خودشان.
+> **وضعیت migrate:** `orders`، `seller_orders` (با ستون‌های صورت مالی)، `order_items` (با کپی کمیسیون؛ بی `commission_rule_id` FK)، `order_status_history`، `stock_movements`، `payment_methods`، `collection_points`، `payments` ← **ساخته شد** (`2026_11_22_000100/000200`). `orders.delivery_code` هم اضافه شد (`2026_11_23_000100`). ستون‌های ساخته‌نشده‌ی این بخش (کوپن/UTM/آدرس صورتحساب در `orders`، `exchange_rate`) و جدول‌های `payment_events`، `payment_allocations`، `commission_rules`، `seller_settlement_items`، `refunds`، `refund_items`، `order_returns*`، ستون‌های تازه‌ی `seller_transactions`/`seller_settlements`/`sellers` و `activity_log.reason` و نقش `courier` ← **بعداً** در مرحله‌ی خودشان.
 
 قاعده‌ها: پول `DECIMAL(12,2)`؛ تعداد `UNSIGNED INT`؛ UUID برای سفارش، سفارش فروشنده، پرداخت، بازپرداخت؛ همه InnoDB؛ ردیف‌های مالی ویرایش و حذف ندارند (فقط سند معکوس).
 
-#### `orders` — سفارش والد (یک تسویه، یک شماره `HS-000123`)
+#### `orders` — سفارش والد (یک تسویه، یک شماره‌ی عددی `100000001`)
 | ستون | نوع | توضیح |
 |---|---|---|
-| id, uuid, number | | آدرس عمومی با uuid؛ `number` یکتا |
+| id, uuid, number | | آدرس عمومی با uuid؛ `number` یکتا. **از ۲ قوس ۱۴۰۵ فقط عدد** (`Order::NUMBER_BASE + id`، خواست صاحب پروژه)؛ سفارش‌های قدیمی `HS-000123` ماندند و پیگیری هر دو شکل را قبول می‌کند |
+| **delivery_code** | VARCHAR(10) NULL | کد تحویل پنج‌رقمی؛ مشتری هنگام گرفتن جنس می‌گوید (migration `2026_11_23_000100`؛ برای سفارش‌های موجود هم ساخته شد). بررسی‌اش با نقش پیک در مرحله‌ی ۳ |
 | customer_id | FK NULL | حساب خریدار؛ مهمان: خالی (بی ردیف مشتری ساختگی) |
 | **purchaser_name, purchaser_phone, purchaser_email** | VARCHAR | خریدار؛ تلفن E.164 یا افغانی؛ ایمیل برای خریدار خارج لازم |
 | purchaser_country | CHAR(2) | `AF` پیش‌فرض |

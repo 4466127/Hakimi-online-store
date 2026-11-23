@@ -9,6 +9,7 @@ use App\Rules\AfghanMobile;
 use App\Services\ActivityLogger;
 use App\Services\ImageStore;
 use App\Services\Settings;
+use App\Support\Num;
 use App\Support\Phone;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -47,6 +48,7 @@ class ManageStoreSettings extends Page
         'is_open' => 'store.is_open',
         'pickup_enabled' => 'delivery.pickup_enabled',
         'pickup_note' => 'delivery.pickup_note',
+        'max_orders_per_day' => 'orders.max_per_day',
     ];
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
@@ -89,6 +91,7 @@ class ManageStoreSettings extends Page
         }
         $state['is_open'] = (bool) $state['is_open'];
         $state['pickup_enabled'] = (bool) $state['pickup_enabled'];
+        $state['max_orders_per_day'] = (string) (int) $state['max_orders_per_day'];
 
         $this->form->fill($state);
     }
@@ -173,6 +176,17 @@ class ManageStoreSettings extends Page
                             ->maxLength(300),
                     ]),
 
+                Section::make(__('admin.settings.section_orders'))
+                    ->description(__('admin.settings.section_orders_help'))
+                    ->schema([
+                        TextInput::make('max_orders_per_day')
+                            ->label(__('admin.settings.max_orders_per_day'))
+                            ->helperText(__('admin.settings.max_orders_per_day_help'))
+                            ->placeholder('2')
+                            ->required()
+                            ->inputMode('numeric'),
+                    ]),
+
                 Section::make(__('admin.settings.section_status'))
                     ->schema([
                         Toggle::make('is_open')
@@ -219,6 +233,8 @@ class ManageStoreSettings extends Page
         $values['store.is_open'] = (bool) $values['store.is_open'];
         $values['delivery.pickup_enabled'] = (bool) $values['delivery.pickup_enabled'];
         $values['delivery.pickup_note'] = ($note = trim((string) $values['delivery.pickup_note'])) === '' ? null : $note;
+        // سقف سفارش روزانه: ارقام فارسی هم قبول است؛ ۰ یعنی بی سقف
+        $values['orders.max_per_day'] = max(0, (int) (Num::parse((string) $values['orders.max_per_day']) ?? 0));
 
         $changes = $settings->setMany($values, auth()->id());
 

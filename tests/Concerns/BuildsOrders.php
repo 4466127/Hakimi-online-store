@@ -15,6 +15,7 @@ use App\Models\Seller;
 use App\Services\Delivery\DeliveryCalculator;
 use App\Services\Orders\CheckoutData;
 use App\Services\Orders\CheckoutService;
+use App\Services\Settings;
 use Database\Seeders\DeliveryZoneSeeder;
 use Database\Seeders\PaymentMethodSeeder;
 use Database\Seeders\ProvinceSeeder;
@@ -28,6 +29,9 @@ trait BuildsOrders
     protected function seedOrderBasics(): void
     {
         $this->seed([ProvinceSeeder::class, DeliveryZoneSeeder::class, PaymentMethodSeeder::class]);
+        // سقف سفارش روزانه در تست‌ها خاموش است (تست‌هایی که چند سفارش می‌سازند)؛
+        // خود سقف در CheckoutPageTest و CheckoutServiceTest با مقدار صریح آزمایش می‌شود.
+        app(Settings::class)->set('orders.max_per_day', 0);
     }
 
     protected function approvedSeller(): Seller
@@ -79,6 +83,12 @@ trait BuildsOrders
         return $calculator->options($zone, 0)[0]->dateString();
     }
 
+    /** اولین روزی که می‌شود جنس را حضوری از نمایندگی گرفت (بی کرایه). */
+    protected function firstPickupDate(): string
+    {
+        return app(DeliveryCalculator::class)->pickupOptions()[0]->dateString();
+    }
+
     /** @param  array<string, mixed>  $overrides */
     protected function checkoutData(array $overrides = []): CheckoutData
     {
@@ -93,7 +103,8 @@ trait BuildsOrders
             'provinceId' => $delivery ? Province::query()->where('code', 'KAB')->value('id') : null,
             'city' => $delivery ? 'کابل' : null,
             'addressLine' => $delivery ? 'کارته‌ی چهار، سرک اول' : null,
-            'deliveryDate' => $delivery ? $this->firstDeliveryDate() : null,
+            // هر دو روش تحویل روز می‌خواهند؛ حضوری بی کرایه
+            'deliveryDate' => $delivery ? $this->firstDeliveryDate() : $this->firstPickupDate(),
         ];
 
         return new CheckoutData(...($overrides + $defaults));

@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * @property int $id
  * @property string $uuid
  * @property string|null $number
+ * @property string|null $delivery_code
  * @property int|null $customer_id
  * @property string $status
  * @property string $payment_status
@@ -73,10 +74,17 @@ class Order extends Model
     /** @var list<string> وضعیت پرداخت */
     public const PAYMENT_STATUSES = ['unpaid', 'awaiting_collection', 'pending', 'partially_paid', 'paid', 'failed', 'partially_refunded', 'refunded'];
 
+    /** شکل قدیمی شماره (سفارش‌های پیش از ۲ قوس ۱۴۰۵): HS-000123. */
     public const NUMBER_PREFIX = 'HS-';
 
+    /**
+     * شماره‌ی سفارش **فقط عدد** است (خواست صاحب پروژه، ۲ قوس ۱۴۰۵؛ مثل دیجی‌کالا): پایه + شناسه،
+     * یعنی ۹ رقم از ۱۰۰۰۰۰۰۰۱ به بالا. گفتن و تایپ کردنش در تلفن آسان است.
+     */
+    public const NUMBER_BASE = 100000000;
+
     /** وضعیت، پرداخت، شماره و جمع‌های پرداخت‌شده را فقط سرویس‌ها (forceFill) می‌گذارند. */
-    protected $guarded = ['id', 'uuid', 'number', 'status', 'payment_status', 'paid_total', 'refunded_total'];
+    protected $guarded = ['id', 'uuid', 'number', 'delivery_code', 'status', 'payment_status', 'paid_total', 'refunded_total'];
 
     protected function casts(): array
     {
@@ -100,25 +108,47 @@ class Order extends Model
         });
     }
 
-    /** HS-000123 از شناسه‌ی سفارش. */
+    /** شماره‌ی عددی سفارش از شناسه: ۱۰۰۰۰۰۰۰۱، ۱۰۰۰۰۰۰۰۲، … */
     public static function numberFor(int $id): string
     {
-        return self::NUMBER_PREFIX.str_pad((string) $id, 6, '0', STR_PAD_LEFT);
+        return (string) (self::NUMBER_BASE + $id);
     }
 
-    /** شماره‌ی تایپ‌شده‌ی مشتری را به شکل استاندارد درمی‌آورد («hs-123» ← «HS-000123»)؛ null اگر شکلش درست نیست. */
-    public static function normalizeNumber(?string $input): ?string
+    /** کد تحویل: پنج رقم تصادفی که مشتری هنگام گرفتن جنس به پیک یا نمایندگی می‌گوید. */
+    public static function generateDeliveryCode(): string
+    {
+        return (string) random_int(10000, 99999);
+    }
+
+    /**
+     * شماره‌هایی که مشتریِ تایپ‌کننده می‌تواند منظورش باشد (برای پیگیری).
+     * ارقام فارسی، فاصله و خط تیره قبول است؛ هم شماره‌ی عددی تازه و هم شکل قدیمی «HS-000123».
+     *
+     * @return list<string>
+     */
+    public static function numberCandidates(?string $input): array
     {
         $digits = array_merge(
             array_combine(['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'], range(0, 9)),
             array_combine(['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'], range(0, 9)),
         );
-        $input = strtoupper(trim(strtr((string) $input, array_map('strval', $digits))));
-        if (preg_match('/^(?:HS)?\s*-?\s*0*(\d{1,9})$/', $input, $m) !== 1) {
-            return null;
+        $text = strtoupper(trim(strtr((string) $input, array_map('strval', $digits))));
+        if (preg_match('/^(?:HS)?\s*-?\s*0*(\d{1,12})$/', $text, $m) !== 1) {
+            return [];
         }
 
-        return self::numberFor((int) $m[1]);
+        $value = (int) $m[1];
+        $candidates = [];
+        if ($value >= self::NUMBER_BASE) {
+            $candidates[] = (string) $value;                // شماره‌ی عددی تازه
+        } else {
+            $candidates[] = self::numberFor($value);        // کسی که فقط شناسه را تایپ کرده
+        }
+        if ($value <= 999999) {
+            $candidates[] = self::NUMBER_PREFIX.str_pad((string) $value, 6, '0', STR_PAD_LEFT);
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     public function customer(): BelongsTo
