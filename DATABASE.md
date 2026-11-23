@@ -310,6 +310,8 @@ Index: `product_id`، (`is_active`)، `barcode`.
 
 ### چ) سفارش، پرداخت، موجودی
 
+> **۱ قوس ۱۴۰۵: طرح قدیمی زیر (تک‌جدولی) جایگزین می‌شود** با «طرح v2» (بخش چ-۲ پایین همین فایل: سفارش والد + سفارش هر فروشنده، خریدار ≠ گیرنده، پرداخت و بازپرداخت جدا). تا تأیید صاحب پروژه (`docs/ASSESSMENT_AND_PLAN.md`) هیچ‌کدام migrate نشده است. جدول‌های `payment_methods`، `stock_movements`، `order_status_history` اینجا مبنای v2 هستند، با تغییرهای ذکر‌شده.
+
 #### `orders`
 | ستون | نوع | توضیح |
 |---|---|---|
@@ -369,6 +371,105 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 
 #### `stock_movements` — دفتر حرکت موجودی آنلاین
 `id`، `variant_id` FK، `type` VARCHAR(15) (`adjust`/`reserve`/`release`/`sale`/`return`)، `qty_delta` DECIMAL(12,3)، `stock_after`، `reserved_after`، `reference_type` VARCHAR(30) NULL، `reference_id` BIGINT NULL، `user_id` FK NULL، `note` NULL، `created_at`. Index (`variant_id`, `created_at`).
+
+### چ-۲) طرح v2 — سفارش چندفروشنده، پرداخت، بازپرداخت (پیشنهادی؛ **migrate نشده**)
+
+قاعده‌ها: پول `DECIMAL(12,2)`؛ تعداد `UNSIGNED INT`؛ UUID برای سفارش، سفارش فروشنده، پرداخت، بازپرداخت؛ همه InnoDB؛ ردیف‌های مالی ویرایش و حذف ندارند (فقط سند معکوس).
+
+#### `orders` — سفارش والد (یک تسویه، یک شماره `HS-000123`)
+| ستون | نوع | توضیح |
+|---|---|---|
+| id, uuid, number | | آدرس عمومی با uuid؛ `number` یکتا |
+| customer_id | FK NULL | حساب خریدار؛ مهمان: خالی (بی ردیف مشتری ساختگی) |
+| **purchaser_name, purchaser_phone, purchaser_email** | VARCHAR | خریدار؛ تلفن E.164 یا افغانی؛ ایمیل برای خریدار خارج لازم |
+| purchaser_country | CHAR(2) | `AF` پیش‌فرض |
+| billing_address | JSON NULL | فقط اگر درگاه بخواهد؛ دسترسی محدود |
+| **is_gift** | BOOL | «برای کس دیگری می‌خرم» |
+| **recipient_name, recipient_phone** | VARCHAR | گیرنده؛ تلفن افغانی |
+| province_id, city, **district**, address_line, **delivery_instructions** | | آدرس تحویل (خالی برای حضوری) |
+| status | VARCHAR(15) | `pending/confirmed/processing/shipped/delivered/cancelled/returned` (محاسبه‌شده از سفارش‌های فروشنده؛ ثبت‌شده برای فیلتر) |
+| payment_status | VARCHAR(25) | `unpaid/awaiting_collection/pending/paid/failed/partially_refunded/refunded` |
+| payment_method_code | VARCHAR(30) | |
+| currency_code, exchange_rate | CHAR(3), DECIMAL(18,6) | AFN و ۱ |
+| subtotal, discount_total, delivery_fee, payment_fee, total | DECIMAL(12,2) | `total = subtotal − discount_total + delivery_fee + payment_fee` |
+| paid_total, refunded_total | DECIMAL(12,2) | جمع پرداخت‌های تأییدشده/بازپرداخت‌شده؛ **فقط سرویس مالی عوض می‌کند** |
+| delivery_method, delivery_mode | VARCHAR | `delivery`/`pickup`؛ `consolidated` (شروع)/`per_seller` |
+| delivery_zone_id, delivery_date, delivery_weight_grams | | کپی از `DeliveryCalculator` |
+| coupon_id, coupon_code | NULL | مرحله‌ی ۹ |
+| customer_note, admin_note | TEXT NULL | |
+| source, utm_source, utm_medium, utm_campaign | VARCHAR NULL | `web/admin/whatsapp`؛ ردیابی بازاریابی |
+| needs_stock_check | BOOL | |
+| locale, ip, user_agent | | |
+| placed_at, confirmed_at, shipped_at, delivered_at, cancelled_at | DATETIME NULL | |
+| cancel_reason, cancelled_by | | |
+Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_phone`، `payment_status`، `delivery_date`.
+
+#### `seller_orders` — سفارشِ هر فروشنده
+`id`، `uuid`، `order_id` FK (cascade)، `number` (`HS-000123-1`، یکتا)، `seller_id` FK NULL (**خالی = جنس خود بازارک**)، `status` (همان ۷ وضعیت)، `subtotal`، `commission_total`، `seller_total`، `delivery_fee_share` (۰ در `consolidated`)، `handover_at` (فروشنده جنس را به بازارک داد)، `shipped_at`، `delivered_at`، `cancelled_at`، `cancel_reason`، `seller_note`، `assigned_courier_id` FK users NULL، timestamps. Index (`seller_id`,`status`)، `order_id`.
+
+#### `order_items` (جدید؛ جایگزین بخش قدیمی)
+`id`، `order_id` FK، `seller_order_id` FK، `variant_id/product_id/seller_id/category_id` (NULL، SET NULL)، **snapshot:** `product_name`، `variant_label`، `sku`، `image_path`، `unit_price`، `compare_at_price`، `discount_amount`، `qty` UNSIGNED INT، `line_total`؛ **مالی (هنگام تحویل+پول):** `commission_rate`، `commission_amount`، `seller_amount`، `commission_entry_id` FK NULL؛ `qty_cancelled`، `qty_returned`.
+
+#### `order_status_history` (تغییر: موضوع عمومی)
+`id`، `subject_type` (`order/seller_order/payment/refund/return`)، `subject_id`، `from_status`، `to_status`، `user_id` NULL (خالی = مشتری/سیستم)، `note`، `created_at`. Index (`subject_type`,`subject_id`,`created_at`).
+
+#### `payment_methods` (تغییر)
+`code` یکتا، `name/description/instructions` JSON، `type` (`cod/cash_point/manual_transfer/gateway`)، `driver` NULL، **`audience`** JSON (`["domestic"]`/`["international"]`/هر دو)، `fee`، `min_total/max_total`، `config` JSON NULL (غیرمحرمانه؛ کلید فقط `.env`)، `is_active`، `position`.
+
+#### `payments` — هر تلاش یا دریافت پول
+| ستون | توضیح |
+|---|---|
+| id, uuid | |
+| order_id FK، seller_order_id FK NULL | خالی = کل سفارش (حالت یکپارچه) |
+| method_code, provider NULL | `cod/cash_point/manual_transfer/hesabpay` |
+| amount, fee_amount, currency_code | مبلغ مورد انتظار؛ کارمزد درگاه (از جواب درگاه) |
+| status | `awaiting_collection/pending/paid/failed/refunded/partially_refunded` |
+| failed_reason | `declined/expired/cancelled/mismatch/…` |
+| idempotency_key | **UNIQUE** |
+| provider_reference | NULL؛ **UNIQUE** با `provider` |
+| attempt_no, expires_at, paid_at | |
+| amount_received | پول نقدِ واقعی گرفته‌شده |
+| collected_by FK users NULL، collection_point_id FK NULL، collected_at | چه کسی، کجا، کی (تاریخ و ساعت) |
+| receipt_number | **UNIQUE** NULL (`RC-…`) |
+| payer_name, transfer_reference, receipt_path | حواله/رسید |
+| note، timestamps | |
+
+#### `payment_events` — رویدادهای درگاه و دستی (فقط افزودن)
+`id`، `payment_id` FK NULL، `provider`، `event_id` (**UNIQUE** با provider)، `type`، `payload` JSON (بی هدر کلید و بی داده‌ی کارت)، `signature_valid` BOOL، `processed_at` NULL، `error` NULL، `created_at`.
+
+#### `collection_points` — نقطه‌های دریافت نقد (آینده)
+`id`، `name` JSON، `type` (`office/agent`)، `province_id`، `city`، `address`، `phone`، `hours` JSON، `instructions` JSON، `user_id` FK NULL (مسئول)، `is_active`، `position`. فعلاً فقط «دفتر مرکزی» از تنظیمات.
+
+#### `refunds` — بازپرداخت پول
+`id`، `uuid`، `order_id`، `payment_id`، `seller_order_id` NULL، `amount`، `reason`، `status` (`requested/approved/processing/completed/failed/rejected`)، `method` (`manual/gateway`)، `provider_reference` NULL، `requested_by`، `approved_by`، `completed_at`، `note`. **`completed` فقط بعد از تأیید واقعی.**
+
+#### `order_returns`، `order_return_items` — برگشت جنس
+`order_returns`: `id`، `uuid`، `order_id`، `seller_order_id`، `status` (`requested/approved/received/rejected/closed`)، `reason`، `received_by`، `closed_at`. `order_return_items`: `return_id`، `order_item_id`، `qty`، `condition` (`resellable/damaged`)، `restock` BOOL.
+
+#### `stock_movements` — همان طرح قبلی (بدون تغییر)
+
+#### مالی — موجود و تغییر
+- `commission_entries`، `seller_transactions`، `seller_settlements`: بی تغییر.
+- **`commission_rules`** (جدید، جایگزین تدریجی `categories.commission_rate` + `seller_commission_rates`؛ migration با کپی داده): `scope` (`product/seller_category/seller/category/global`)، `product_id/seller_id/category_id` NULL، `type` (`percent/fixed`)، `rate`، `fixed_amount`، `starts_at/ends_at`، `reason`، `note`، `created_by`. قید: هم‌پوشانی بازه‌ها برای یک هدف ممنوع (در سرویس + تست). اولویت: `docs/COMMISSION_AND_SELLER_SETTLEMENT.md` بخش ۲.
+- **`activity_log.reason`** TEXT NULL (دلیل عمل‌های مالی)؛ `activity_log.ip` موجود.
+- **`users.role`**: مقدار تازه `courier` (پیک).
+- `customers`: بدون تغییر (مهمان ردیف ندارد). **بعد از OTP:** سفارش‌های مهمان با شماره‌ی تأییدشده به حساب وصل می‌شوند.
+
+#### تکمیل ۱ قوس ۱۴۰۵ — تخصیص مالی چندفروشنده (`docs/COMMISSION_AND_SELLER_SETTLEMENT.md`)
+- **`orders.payment_status`** مقدار تازه `partially_paid` (فقط سفارش والد: بعضی سفارش‌های فروشنده پرداخت شده، بعضی نه).
+- **`seller_orders`** + `payment_status` (`unpaid/awaiting_collection/pending/paid/failed/partially_refunded/refunded`) و **صورت مالی جدا:** `gross_subtotal`، `seller_discount_total`، `platform_discount_total`، `customer_paid_products`، `commissionable_amount`، `commission_total`، `delivery_fee`، `delivery_fee_payee` (`platform/seller`)، `gateway_fee_allocated`، `gateway_fee_charged_to_seller`، `refund_adjustments`، `other_deductions`، `seller_payable` (همگی `DECIMAL(12,2)`؛ معادله‌ها در سند کمیسیون بخش ۳؛ تست).
+- **`order_items`** + `seller_discount`، `platform_discount`؛ **کپی قاعده هنگام ثبت سفارش:** `commission_rule_id` FK NULL، `commission_type` (`percent/fixed`)، `commission_rate`، `rate_source` (`product/category/seller/global/exception/platform`)، `commission_amount`، `seller_amount` (ثابت؛ ثبت دفتر از همین‌ها می‌خواند).
+- **`commission_rules`** + `is_exception` BOOL (استثنا/تبلیغاتی با تاریخ پایان؛ بر همه غلبه می‌کند). ترتیب: `marketplace.commission_priority` (پیش‌فرض `product,category,seller,global`).
+- **`payment_allocations`** — تخصیص پول گرفته‌شده: `id`، `payment_id` FK، `seller_order_id` FK NULL (خالی = سطح سفارش)، `component` (`products/delivery/payment_fee/gateway_fee`)، `amount`، `created_at`. **UNIQUE** (`payment_id`,`seller_order_id`,`component`). مجموع اجزای دریافتی = `payments.amount` (قید در سرویس + تست).
+- **`seller_transactions`** + `order_id`، `seller_order_id`، `reference` **UNIQUE**، `gross_amount`، `commission_amount`، `refund_adjustment`، `other_adjustment`، `net_amount`، `settlement_status` (`pending/eligible_for_settlement/partially_settled/settled/adjusted`)، `settled_amount`، `occurred_at`.
+- **`seller_settlement_items`** — `settlement_id`، `transaction_id`، `amount`؛ تسویه‌ی جزئی؛ مجموع هر ردیف دفتر ≤ `net_amount`.
+- **`seller_settlements`** + `status` (`draft/paid/failed`)؛ ردیف `payout` در دفتر فقط با `paid` و مرجع انتقال.
+- **`refund_items`** — `refund_id`، `order_item_id`، `qty`، `amount`، `commission_reversed`.
+- **`sellers`** + `payment_fee_policy` (`platform` پیش‌فرض / `seller`) و `payment_fee_agreed_at`.
+- تنظیمات بازارگاه: `marketplace.settlement_hold_days` (۰)، `marketplace.commission_priority`، `marketplace.platform_discount_cap_by_commission` (اختیاری).
+
+#### migration‌های لازم (به ترتیب پیشنهادی)
+۱) `orders` + `seller_orders` (با ستون‌های صورت مالی) + `order_items` (با کپی کمیسیون) + `order_status_history` + `stock_movements`؛ ۲) `payment_methods` + `payments` + `payment_events` + `payment_allocations` + `collection_points`؛ ۳) `users.role` (courier) + `activity_log.reason`؛ ۴) `commission_rules` (+ انتقال داده) + تغییر `seller_transactions` + `seller_settlement_items` + `seller_settlements.status` + `sellers.payment_fee_policy`؛ ۵) `refunds` + `refund_items` + `order_returns*`. هیچ‌کدام داده‌ی موجود را پاک نمی‌کند.
 
 ### ح) محتوا و تنظیمات
 

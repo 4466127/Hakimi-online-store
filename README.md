@@ -5,7 +5,7 @@
 فروشگاه اینترنتی «برادران حکیمی» برای مشتریان افغانستان: بوت و کفش، لباس افغانی، موبایل و لوازم، لپتاپ و کمپیوتر. مثل دیجی‌کالا، **دیگران هم می‌توانند در بازارک بفروشند**.
 به دری، راست‌چین، اول برای موبایل و ساخته‌شده برای انترنت ضعیف.
 
-> **وضعیت:** مرحله‌ی ۲ (پایه) و بخش ۲ب (نام و لوگوی بازارک، دسته‌بندی کالاها، حساب مشتری، «در بازارک بفروشید») ساخته شد. قدم بعدی: اجناس (کاتالوگ). جزئیات: [ROADMAP.md](ROADMAP.md)
+> **وضعیت:** مرحله‌ی ۲ (پایه) و بخش ۲ب (نام و لوگوی بازارک، دسته‌بندی کالاها، حساب مشتری، «در بازارک بفروشید») ساخته شد. بعداً کاتالوگ (اجناس، سبد خرید) هم ساخته شد. **۱ قوس ۱۴۰۵:** برنامه‌ی کلان سفارش، پرداخت و کمیسیون فقط به‌صورت سند نوشته شد و منتظر تأیید صاحب پروژه است ([docs/ASSESSMENT_AND_PLAN.md](docs/ASSESSMENT_AND_PLAN.md))؛ هنوز کدی برای سفارش ساخته نشده. جزئیات: [ROADMAP.md](ROADMAP.md)
 
 ## چه چیزی حالا کار می‌کند
 
@@ -147,6 +147,13 @@ docs/             راهنماها
 | [CHANGELOG.md](CHANGELOG.md) | لیست تغییرات |
 | [docs/rahnama-modir.md](docs/rahnama-modir.md) | راهنمای پنل مدیریت برای اعضای خانواده |
 | [CLAUDE.md](CLAUDE.md) | قواعد کار روی این پروژه |
+| [docs/ASSESSMENT_AND_PLAN.md](docs/ASSESSMENT_AND_PLAN.md) | برنامه‌ی کلان سفارش و پرداخت (۱ قوس ۱۴۰۵): وضعیت، خطرها، ۱۲ مرحله، تصمیم‌های لازم |
+| [docs/PAYMENTS_AND_CHECKOUT.md](docs/PAYMENTS_AND_CHECKOUT.md) | تسویه و پرداخت (هنگام تحویل، حضوری، حواله، حساب‌پی، خریدار خارج) |
+| [docs/COMMISSION_AND_SELLER_SETTLEMENT.md](docs/COMMISSION_AND_SELLER_SETTLEMENT.md) | کمیسیون هر فروشنده، دفتر مالی، تسویه |
+| [docs/SECURITY.md](docs/SECURITY.md) | امنیت: وضعیت واقعی، تهدیدها، چک‌لیست پیش از راه‌اندازی |
+| [docs/API.md](docs/API.md) | نقطه‌های ورودی سفارش، پرداخت و webhook (طرح) |
+| [docs/GO_TO_MARKET_AND_MARKETING.md](docs/GO_TO_MARKET_AND_MARKETING.md) | بازار افغانستان و جذب مشتری |
+| [docs/DOMAIN_AND_HOSTING_RECOMMENDATION.md](docs/DOMAIN_AND_HOSTING_RECOMMENDATION.md) / [docs/aws-hosting.md](docs/aws-hosting.md) | دامنه و میزبانی (دو معماری با هزینه)؛ راهنمای AWS |
 
 ## چند قاعده‌ی مهم
 
