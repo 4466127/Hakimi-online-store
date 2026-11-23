@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\SellerSettlement;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -26,6 +27,19 @@ class ReceiptController extends Controller
         $this->authorizeView($request, $row);
 
         return view('admin.receipt', ['payment' => $row, 'order' => $row->order]);
+    }
+
+    /** رسید چاپی تسویه با فروشنده: مبلغ، روش، مرجع، پرداخت‌کننده و ردیف‌های دفتر که پرداخت شد. */
+    public function settlement(Request $request, string $settlement): View
+    {
+        $row = SellerSettlement::query()->where('uuid', $settlement)
+            ->with(['seller', 'creator', 'items.transaction'])
+            ->firstOrFail();
+
+        $user = $request->user();
+        abort_if($user === null || ! $user->can('view', $row), 403);
+
+        return view('admin.settlement-receipt', ['settlement' => $row]);
     }
 
     private function authorizeView(Request $request, Payment $payment): void

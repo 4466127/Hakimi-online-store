@@ -111,6 +111,12 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class)->orderBy('position')->orderBy('id');
     }
 
+    /** قاعده‌های کمیسیون مخصوص همین جنس. */
+    public function commissionRates(): HasMany
+    {
+        return $this->hasMany(ProductCommissionRate::class)->latest('id');
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('position')->orderBy('id');

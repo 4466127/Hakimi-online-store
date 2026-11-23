@@ -30,6 +30,10 @@ class TransactionsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('creator'))
             ->columns([
+                TextColumn::make('reference')
+                    ->label(__('admin.finance.reference_no'))
+                    ->placeholder('—')
+                    ->searchable(),
                 TextColumn::make('created_at')
                     ->label(__('admin.finance.occurred_at'))
                     ->formatStateUsing(fn ($state): string => Jalali::dateTime($state)),
@@ -51,6 +55,20 @@ class TransactionsRelationManager extends RelationManager
                     ->label(__('admin.finance.balance_after'))
                     ->formatStateUsing(fn ($state): string => Num::format((string) $state, 2))
                     ->weight('bold'),
+                TextColumn::make('settlement_status')
+                    ->label(__('admin.finance.settlement_status'))
+                    ->state(fn (SellerTransaction $record): string => $record->settlementStatus())
+                    ->formatStateUsing(fn (SellerTransaction $record): string => $record->settlementStatusLabel())
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'eligible' => 'success',
+                        'partially_settled' => 'warning',
+                        'settled', 'paid_out' => 'gray',
+                        default => 'info',
+                    }),
+                TextColumn::make('open_amount')
+                    ->label(__('admin.finance.open_amount'))
+                    ->formatStateUsing(fn ($state): string => Num::format((string) $state, 2)),
                 TextColumn::make('description')
                     ->label(__('admin.finance.description'))
                     ->placeholder('—')

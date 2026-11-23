@@ -363,10 +363,10 @@ class CheckoutService
             $variant = $line['variant'];
             $product = $variant->product;
 
-            // کپی قاعده‌ی کمیسیون همین لحظه (نرخ هر ترکیب فروشنده/دسته یک بار حساب می‌شود)
-            $key = $product->category_id;
-            $rate = $rates[$key] ??= $this->commission->rateFor($seller, $product->category);
-            $commission = $seller === null ? '0.00' : Money::percentOf($line['lineTotal'], $rate->rate);
+            // کپی قاعده‌ی کمیسیون همین لحظه (قاعده‌ی جنس ممکن است فرق کند، پس کلید = جنس)
+            $key = $product->id;
+            $rate = $rates[$key] ??= $this->commission->rateFor($seller, $product->category, null, $product);
+            $commission = $seller === null ? '0.00' : $rate->commissionFor($line['lineTotal'], (int) $line['qty']);
             $sellerAmount = $seller === null ? '0.00' : Money::sub($line['lineTotal'], $commission);
 
             $gross = Money::add($gross, $line['lineTotal']);
@@ -430,8 +430,10 @@ class CheckoutService
             'platform_discount' => '0.00',
             'qty' => $line['qty'],
             'line_total' => $line['lineTotal'],
-            'commission_type' => 'percent',
+            'commission_rule_id' => $rate->overrideId,
+            'commission_type' => $rate->type,
             'commission_rate' => $rate->rate,
+            'commission_fixed_amount' => $rate->fixedAmount,
             'rate_source' => $rate->source,
             'commission_amount' => $commission,
             'seller_amount' => $sellerAmount,

@@ -30,6 +30,12 @@ Route::get('/admin/receipts/{payment}', [ReceiptController::class, 'show'])
     ->whereUuid('payment')
     ->name('admin.receipt');
 
+// رسید چاپی تسویه با فروشنده (مرحله‌ی ۴؛ فقط صاحب و مدیر — SellerSettlementPolicy@view)
+Route::get('/admin/settlement-receipts/{settlement}', [ReceiptController::class, 'settlement'])
+    ->middleware('auth')
+    ->whereUuid('settlement')
+    ->name('admin.settlement-receipt');
+
 Route::get('/page/{slug}', [PageController::class, 'show'])
     ->where('slug', '[^/]+')
     ->name('page.show');

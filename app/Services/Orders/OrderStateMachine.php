@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\SellerOrder;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\Commission\OrderAccounting;
 use App\Support\Money;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,8 @@ use Illuminate\Support\Facades\DB;
  *
  * اثر روی موجودی: لغو ← رزرو آزاد؛ تحویل ← موجودی کم و رزرو آزاد. هر گذار داخل یک transaction با قفل
  * ردیف سفارش والد، و در `order_status_history` + `activity_log` ثبت می‌شود.
- * ثبت کمیسیون (تحویل + پول رسیده) و بازپرداخت در مرحله‌های ۴ و ۷ از همین نقطه‌ها وصل می‌شود.
+ * ثبت طلب فروشنده (تحویل + پول رسیده) و برگشت آن از همین نقطه به OrderAccounting وصل است (مرحله‌ی ۴)؛
+ * بازپرداخت پول مشتری مرحله‌ی ۷ است.
  */
 class OrderStateMachine
 {
@@ -50,6 +52,7 @@ class OrderStateMachine
     public function __construct(
         private readonly StockLedger $stock,
         private readonly ActivityLogger $logger,
+        private readonly OrderAccounting $accounting,
     ) {}
 
     public function can(string $from, string $to): bool
@@ -104,6 +107,13 @@ class OrderStateMachine
             $this->logger->log('seller_order.status_changed', $so, ['from' => $from, 'to' => $to, 'note' => $note], $actor);
 
             $this->rollUp($order, $actor, $note);
+
+            // حساب فروشنده: تحویل (اگر پول رسیده) ← طلب؛ برگشت بعد از تحویل ← سند برگشت با همان نرخ
+            if ($to === 'delivered') {
+                $this->accounting->postOrder($order, $actor);
+            } elseif ($to === 'returned') {
+                $this->accounting->reverseSellerOrder($so, $actor, $note);
+            }
 
             return $so->refresh();
         });

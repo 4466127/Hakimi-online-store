@@ -108,6 +108,8 @@ class SellerIncentives
             'seller_id' => $seller->id,
             'category_id' => null,
             'rate' => $rate,
+            // مزیت شروع «استثنا» است: بر نرخ جنس و دسته غلبه می‌کند (تصمیم ۳ صاحب پروژه)
+            'is_exception' => true,
             'starts_at' => now(),
             'ends_at' => now()->addDays($days),
             'reason' => $reason,

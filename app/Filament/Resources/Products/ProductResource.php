@@ -66,6 +66,13 @@ class ProductResource extends Resource
         return parent::getRecordRouteBindingEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\CommissionRatesRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

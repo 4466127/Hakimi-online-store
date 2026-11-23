@@ -56,9 +56,13 @@ interface PaymentGateway {
 | `PaymentService::confirmTransfer / rejectTransfer` | حواله | مدیر | بلی |
 | `RefundService::request / approve / markCompleted / reject` | بازپرداخت | درخواست: کارمند/مدیر؛ تأیید: مدیر/صاحب | بلی |
 | `ReturnService::request / receive / close` | برگشت جنس | مدیر، کارمند | بلی |
-| `PaymentAllocator::allocate(Payment)` | تقسیم پولِ رسیده بین سفارش‌های فروشنده‌ها (کوچک‌ترین واحد پول، روش «بیشترین باقی‌مانده»، مجموع دقیقاً برابر پول رسیده؛ بی‌تکرار با کلید یکتای `payment_id + seller_order_id + component`) | خودکار (بعد از تأیید پول؛ نه از پنل) | لاگ |
+| `OrderAccounting::postOrder(Order)` ✓ (مرحله‌ی ۴؛ به‌جای `PaymentAllocator`) | سند هر خط تحویل‌شده و پول‌رسیده از روی کپی قاعده + طلب فروشنده (بی‌تکرار) | خودکار (بعد از «پول رسید» و «تحویل شد») | لاگ |
+| `OrderAccounting::reverseSellerOrder` ✓ | برگشت طلب و کمیسیون بعد از برگشت جنس، همان نرخ | خودکار (گذار `returned`) | لاگ |
+| `SellerLedger::settle(Seller, ?amount, method, User, reference…)` ✓ | تسویه‌ی کامل/جزئی از «قابل تسویه» | صاحب/مدیر | بلی (مرجع برای انتقال) |
+| `PaymentAllocator::allocate(Payment)` (ساخته نشد) | تقسیم پولِ رسیده بین سفارش‌های فروشنده‌ها (کوچک‌ترین واحد پول، روش «بیشترین باقی‌مانده»، مجموع دقیقاً برابر پول رسیده؛ بی‌تکرار با کلید یکتای `payment_id + seller_order_id + component`) | خودکار (بعد از تأیید پول؛ نه از پنل) | لاگ |
 | `CommissionRuleService::create/update` | قاعده‌ی کمیسیون | صاحب/مدیر | بلی (لاگ) |
-| `SettlementService::record / adjust` | تسویه و اصلاح مانده | صاحب/مدیر | بلی |
+| `SettlementService::record / adjust` (نام طرح؛ واقعی: `SellerLedger::settle`، `CommissionService::adjust`) | تسویه و اصلاح مانده | صاحب/مدیر | بلی |
+| `GET /admin/settlement-receipts/{uuid}` ✓ | رسید چاپی تسویه | صاحب/مدیر (`SellerSettlementPolicy@view`) | — |
 
 هر کدام: transaction، `lockForUpdate`، ماشین وضعیت، `order_status_history`، `activity_log` (با دلیل)، و بی‌تکراری با `idempotency_key`.
 

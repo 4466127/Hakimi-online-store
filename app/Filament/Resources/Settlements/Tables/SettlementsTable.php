@@ -7,6 +7,8 @@ namespace App\Filament\Resources\Settlements\Tables;
 use App\Models\SellerSettlement;
 use App\Support\Jalali;
 use App\Support\Num;
+use Filament\Actions\Action;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -22,6 +24,10 @@ class SettlementsTable
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['seller', 'creator']))
             ->columns(array_values(array_filter([
+                TextColumn::make('number')
+                    ->label(__('admin.finance.number'))
+                    ->placeholder('—')
+                    ->searchable(),
                 TextColumn::make('paid_at')
                     ->label(__('admin.finance.paid_at'))
                     ->formatStateUsing(fn ($state): string => Jalali::date($state))
@@ -58,6 +64,14 @@ class SettlementsTable
                     ->label(__('admin.finance.method'))
                     ->options((array) __('commission.methods')),
             ] : [])
+            ->recordActions([
+                Action::make('print')
+                    ->label(__('admin.finance.print_settlement'))
+                    ->icon(Heroicon::OutlinedPrinter)
+                    ->color('gray')
+                    ->url(fn (SellerSettlement $record): string => route('admin.settlement-receipt', $record->uuid))
+                    ->openUrlInNewTab(),
+            ])
             ->defaultSort('paid_at', 'desc')
             ->emptyStateHeading(__('admin.finance.empty_settlements'));
     }

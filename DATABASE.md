@@ -123,7 +123,18 @@ Index: (`subject_type`, `subject_id`)، (`actor_type`, `actor_id`, `created_at`)
 
 Index: (`status`, `submitted_at`).
 
-### ر) کمیسیون و حساب فروشندگان (۲۶ عقرب ۱۴۰۵)
+### ر) کمیسیون و حساب فروشندگان (۲۶ عقرب ۱۴۰۵؛ مرحله‌ی ۴ کامل شد ۲ قوس ۱۴۰۵)
+
+> **مرحله‌ی ۴ (migration `2026_11_23_000300_seller_accounting`، فقط ستون و جدول تازه، بی پاک کردن داده):**
+> - `seller_commission_rates` + `type` (`percent/fixed`، پیش‌فرض percent)، `fixed_amount` DECIMAL(12,2) NULL (هر عدد)، `is_exception` BOOL (مزایای `incentive.*` خودکار ۱)، `is_active` BOOL.
+> - **`product_commission_rates`** (تازه): `product_id` FK (حذف جنس ← حذف قاعده)، `type`، `rate` DECIMAL(5,2)، `fixed_amount`، `starts_at/ends_at`، `is_active`، `note`، `created_by`. ایندکس `(product_id, is_active)`.
+> - `order_items` + `commission_fixed_amount` (کپی مبلغ ثابت).
+> - `commission_entries` + `order_id`، `seller_order_id` (FK، restrict)، `commission_type`، `currency_code`.
+> - `seller_transactions` + `reference` **UNIQUE** (`ST-` + ۱۰۰۰۰۰ + شناسه)، `order_id`، `seller_order_id`، `payment_id` (FK، restrict)، `currency_code`، `open_amount` (تسویه‌نشده؛ هم‌علامت `amount`)، `eligible_at` (خالی = منتظر). ایندکس `(seller_id, eligible_at)`. مبلغ و مانده تغییرناپذیر؛ فقط `open_amount`/`eligible_at` از `SellerLedger`.
+> - **`seller_settlement_items`** (تازه): `settlement_id`، `seller_transaction_id`، `amount` (هم‌علامت ردیف دفتر)؛ UNIQUE `(settlement_id, seller_transaction_id)`؛ ویرایش/حذف ندارد.
+> - `seller_settlements` + `number` **UNIQUE** (`SP-…`)، `currency_code`.
+> - تنظیم تازه: `marketplace.settlement_hold_days` (پیش‌فرض ۰).
+> - جدول یکپارچه‌ی `commission_rules` (طرح چ-۲) ساخته **نشد**: نرخ دسته در `categories`، نرخ فروشنده در `seller_commission_rates`، نرخ جنس در `product_commission_rates` ماند (تغییر کمتر، همان اولویت). `payment_allocations` هم ساخته نشد (سندهای هر خط همان تخصیص است؛ `docs/COMMISSION_AND_SELLER_SETTLEMENT.md` بخش ۰-۳).
 
 - `categories.commission_rate` DECIMAL(5,2) NULL — خالی = از بالادست، بعد `marketplace.default_commission_rate`.
 - `sellers` + `approved_at`، `settlement_cycle` (`weekly`/`biweekly`/`monthly`)، `free_pickup_until` DATE، `incentives_applied_at`.
@@ -510,6 +521,7 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 | ۲ ✓ | `users`، `activity_log`، `settings`، `pages`، `currencies`، `provinces` + جدول‌های لاراول (`sessions`، `cache`، `jobs`، …) |
 | ۲ب ✓ | `customers`، `categories`، `sellers` |
 | ۲ج ✓ | `seller_commission_rates`، `commission_entries`، `seller_transactions`، `seller_settlements` (+ ستون‌های کمیسیون روی `categories` و `sellers`) |
+| برنامه‌ی کلان ۴ ✓ | `product_commission_rates`، `seller_settlement_items` + ستون‌های تازه‌ی `seller_commission_rates`، `order_items`، `commission_entries`، `seller_transactions`، `seller_settlements` (`2026_11_23_000300`) |
 | ۳ | `brands` ✓، `attributes` ✓، `attribute_options` ✓، `category_attribute` ✓ (۳-۱)، `products` ✓، `product_attribute_values` ✓، `product_variants` ✓، `variant_attribute_values` ✓، `product_images` ✓، `product_relations` ✓، `slug_redirects` ✓ (۳-۲)، `banners`، `home_sections` |
 | ۴ | `carts` ✓، `cart_items` ✓ (۴-۱)، `delivery_zones` ✓، `delivery_slots` ✓، `delivery_weight_tiers` ✓ (کرایه، ۲۶ عقرب)، `customer_addresses`، `carts`، `cart_items`، `orders`، `order_items`، `order_status_history`، `payment_methods`، `payments`، `stock_movements` |
 | ۵ | `promotions`، `promotion_targets`، `coupons`، `coupon_redemptions`، `notifications_log`، `customer_otps` |

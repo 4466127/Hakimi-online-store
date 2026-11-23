@@ -306,6 +306,14 @@ hakimi-online-store/
 - **پنل:** نرخ هر دسته در فورم دسته (و ستون «کمیسیون» با نرخ مؤثر)؛ «تنظیمات بازارگاه» (پیش‌فرض، دوره‌ی تسویه، مزایا)؛ صفحه‌ی فروشنده: بخش «حساب و کمیسیون»، نرخ‌های ویژه، دفتر حساب، تسویه‌ها، دکمه‌های «ثبت تسویه» و «اصلاح حساب»؛ «سوابق کمیسیون» با کارت‌های جمع؛ «تسویه‌ها». فقط صاحب و مدیر.
 - **سایت:** `/sell/commissions` (نرخ هر دسته از دیتابیس + قاعده‌ها + مثال حساب‌شده)؛ لینک در صفحه‌ی معرفی و قدم «قوانین»؛ فروشنده‌ی تأییدشده طلب، دوره‌ی تسویه و نرخ ویژه‌اش را در صفحه‌ی وضعیت می‌بیند.
 
+**مرحله‌ی ۴ (۲ قوس ۱۴۰۵): طلب فروشنده، دفتر و تسویه — کد واقعی.** `app/Services/Commission/*`:
+- `CommissionService::rateFor($seller, $category, $at, $product)` با اولویت **استثنای فروشنده ← قاعده‌ی جنس ← دسته ← نرخ عادی فروشنده ← پیش‌فرض**؛ `AppliedRate` (درصدی یا مبلغ ثابت هر عدد، `commissionFor()` با سقف مبلغ خط). `CheckoutService` قاعده را برای هر خط کپی می‌کند.
+- `OrderAccounting`: `postOrder` (سند هر خط از روی کپی، فقط «تحویل شد» + `payment_status = paid`؛ صدا زده از `PaymentStateMachine::markPaid` و `OrderStateMachine::transition`)، `reverseSellerOrder` (برگشت بعد از تحویل، همان نرخ)، `releaseCourierCash` (از `CashCollectionService::handOver`).
+- `SellerLedger`: `append` (ردیف تغییرناپذیر با `reference` یکتا و مانده)، `summary` (منتظر/قابل تسویه/تسویه‌شده/کل طلب)، `releaseForPayments`، `settle` (کامل یا جزئی، در transaction با قفل فروشنده و ردیف‌ها؛ `SettlementException` با پیام دری).
+- `FinanceReport`: عددهای داشبورد با بازه (امروز/هفته/ماه/سال/همه) از ردیف‌های واقعی؛ ویجت `MarketplaceFinanceStats`.
+- رسید تسویه: `/admin/settlement-receipts/{uuid}` (`Admin\ReceiptController@settlement`، فقط `SellerSettlementPolicy@view` = صاحب/مدیر).
+- جزئیات و تعریف هر عدد: `docs/COMMISSION_AND_SELLER_SETTLEMENT.md` بخش ۰.
+
 ### ۷-۱۵. مزایای فروشندگان تازه (پیشنهاد، به خواست صاحب پروژه)
 بار اول که فروشنده تأیید می‌شود، خودکار (`SellerIncentives`؛ عددها از «تنظیمات بازارگاه»؛ صفر = خاموش؛ فقط یک بار):
 - **اینستاگرامی/فیسبوکی:** ۹۰ روز کمیسیون ۰٪ (نرخ ویژه با تاریخ ختم).

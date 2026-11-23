@@ -9,6 +9,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\Commission\OrderAccounting;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
@@ -40,7 +41,10 @@ class PaymentStateMachine
         Payment::REFUNDED => [],
     ];
 
-    public function __construct(private readonly ActivityLogger $logger) {}
+    public function __construct(
+        private readonly ActivityLogger $logger,
+        private readonly OrderAccounting $accounting,
+    ) {}
 
     public function can(string $from, string $to): bool
     {
@@ -97,6 +101,8 @@ class PaymentStateMachine
             ], $actor);
 
             $this->syncOrder($order, $actor);
+            // اگر حالا پول کامل رسیده و سفارش فروشنده‌ای تحویل شده، طلب فروشنده ثبت می‌شود (بی‌تکرار)
+            $this->accounting->postOrder($order, $actor);
 
             return $row->refresh();
         });

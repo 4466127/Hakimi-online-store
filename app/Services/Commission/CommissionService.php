@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Commission;
 
+use App\Enums\UserRole;
 use App\Models\Category;
 use App\Models\CommissionEntry;
+use App\Models\OrderItem;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductCommissionRate;
 use App\Models\Seller;
 use App\Models\SellerCommissionRate;
+use App\Models\SellerOrder;
 use App\Models\SellerSettlement;
 use App\Models\SellerTransaction;
 use App\Models\User;
@@ -40,6 +46,7 @@ class CommissionService
     public function __construct(
         private readonly Settings $settings,
         private readonly ActivityLogger $logger,
+        private readonly SellerLedger $ledger,
     ) {}
 
     // ───────────────────────── نرخ‌ها ─────────────────────────
@@ -140,10 +147,17 @@ class CommissionService
     }
 
     /**
-     * نرخی که برای فروش این فروشنده در این دسته به کار می‌رود.
-     * نرخ ویژه‌ی فعال فروشنده: اول نرخ مخصوص همین دسته یا نزدیک‌ترین بالادستش، بعد نرخ «همه‌ی دسته‌ها».
+     * قاعده‌ای که برای فروش این جنس (از این فروشنده، در این دسته) به کار می‌رود.
+     *
+     * اولویت (تصمیم ۳ صاحب پروژه، ۱ قوس ۱۴۰۵):
+     *   ۱. «استثنا»ی فعال فروشنده (مزایای شروع، توافق ویژه با تاریخ پایان) — بر همه غلبه می‌کند
+     *   ۲. قاعده‌ی فعال همان جنس
+     *   ۳. نرخ دسته (یا نزدیک‌ترین بالادستی که نرخ دارد)
+     *   ۴. نرخ عادی فروشنده (اول مخصوص همان دسته یا بالادستش، بعد «همه‌ی دسته‌ها»)
+     *   ۵. پیش‌فرض تنظیمات بازارگاه
+     * جنس خود بازارک (بی فروشنده) همیشه ۰ است. هیچ نرخی در کد نیست و هیچ نرخی از مرورگر گرفته نمی‌شود.
      */
-    public function rateFor(?Seller $seller, ?Category $category, ?DateTimeInterface $at = null): AppliedRate
+    public function rateFor(?Seller $seller, ?Category $category, ?DateTimeInterface $at = null, ?Product $product = null): AppliedRate
     {
         if ($seller === null) {
             return new AppliedRate('0.00', 'platform', $category?->id);
@@ -155,24 +169,71 @@ class CommissionService
             ->activeAt($at)
             ->orderByDesc('id')
             ->get();
+        $chain = $category ? array_reverse([...$category->ancestorIds(), $category->id]) : []; // خود ← ریشه
 
-        if ($overrides->isNotEmpty()) {
-            $chain = $category ? array_reverse([...$category->ancestorIds(), $category->id]) : []; // خود ← ریشه
-            foreach ($chain as $categoryId) {
-                $match = $overrides->firstWhere('category_id', $categoryId);
-                if ($match) {
-                    return new AppliedRate(Num::round((string) $match->rate, 2), 'seller', $category?->id, $match->id, $match->ends_at);
-                }
-            }
-            $all = $overrides->firstWhere('category_id', null);
-            if ($all) {
-                return new AppliedRate(Num::round((string) $all->rate, 2), 'seller', $category?->id, $all->id, $all->ends_at);
+        // ۱) استثنا
+        $exception = $this->matchOverride($overrides->where('is_exception', true), $chain);
+        if ($exception) {
+            return $this->fromOverride($exception, 'exception', $category?->id);
+        }
+
+        // ۲) قاعده‌ی جنس
+        if ($product !== null) {
+            $rule = ProductCommissionRate::query()->where('product_id', $product->id)->activeAt($at)->orderByDesc('id')->first();
+            if ($rule) {
+                return new AppliedRate(
+                    $rule->type === AppliedRate::FIXED ? '0.00' : Num::round((string) $rule->rate, 2),
+                    'product', $category?->id, $rule->id, $rule->ends_at,
+                    $rule->type === AppliedRate::FIXED ? AppliedRate::FIXED : AppliedRate::PERCENT,
+                    $rule->type === AppliedRate::FIXED ? Money::of((string) $rule->fixed_amount) : null,
+                );
             }
         }
 
-        $rate = $this->categoryRate($category);
+        // ۳) دسته
+        $categoryRate = $this->categoryRate($category);
+        if ($categoryRate->source === 'category') {
+            return new AppliedRate($categoryRate->rate, 'category', $category?->id);
+        }
 
-        return new AppliedRate($rate->rate, $rate->source, $category?->id);
+        // ۴) نرخ عادی فروشنده
+        $regular = $this->matchOverride($overrides->where('is_exception', false), $chain);
+        if ($regular) {
+            return $this->fromOverride($regular, 'seller', $category?->id);
+        }
+
+        // ۵) پیش‌فرض
+        return new AppliedRate($categoryRate->rate, 'default', $category?->id);
+    }
+
+    /**
+     * نرخ ویژه‌ی فروشنده که به این دسته می‌خورد: اول مخصوص همین دسته یا نزدیک‌ترین بالادست، بعد «همه‌ی دسته‌ها».
+     *
+     * @param  Collection<int, SellerCommissionRate>  $overrides
+     * @param  list<int>  $chain  خود ← ریشه
+     */
+    private function matchOverride(Collection $overrides, array $chain): ?SellerCommissionRate
+    {
+        foreach ($chain as $categoryId) {
+            $match = $overrides->firstWhere('category_id', $categoryId);
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return $overrides->firstWhere('category_id', null);
+    }
+
+    private function fromOverride(SellerCommissionRate $o, string $source, ?int $categoryId): AppliedRate
+    {
+        $fixed = $o->type === AppliedRate::FIXED;
+
+        return new AppliedRate(
+            $fixed ? '0.00' : Num::round((string) $o->rate, 2),
+            $source, $categoryId, $o->id, $o->ends_at,
+            $fixed ? AppliedRate::FIXED : AppliedRate::PERCENT,
+            $fixed ? Money::of((string) $o->fixed_amount) : null,
+        );
     }
 
     // ───────────────────────── ثبت فروش و برگشت ─────────────────────────
@@ -195,7 +256,7 @@ class CommissionService
 
         $occurredAt = $line->occurredAt ?? now();
         $rate = $this->rateFor($line->seller, $line->category, $occurredAt);
-        $commission = $line->seller ? Money::percentOf($gross, $rate->rate) : '0.00';
+        $commission = $line->seller ? $rate->commissionFor($gross, 1) : '0.00';
         $sellerAmount = $line->seller ? Money::sub($gross, $commission) : '0.00';
 
         try {
@@ -210,6 +271,7 @@ class CommissionService
                     'description' => $line->description,
                     'gross_amount' => $gross,
                     'commission_rate' => $rate->rate,
+                    'commission_type' => $rate->type,
                     'rate_source' => $rate->source,
                     'commission_amount' => $commission,
                     'seller_amount' => $sellerAmount,
@@ -218,7 +280,7 @@ class CommissionService
                 ]);
 
                 if ($line->seller) {
-                    $this->appendTransaction($line->seller, 'earning', $sellerAmount, [
+                    $this->ledger->append($line->seller, 'earning', $sellerAmount, [
                         'commission_entry_id' => $entry->id,
                         'description' => $line->description,
                         'created_by' => $actor?->id,
@@ -230,6 +292,70 @@ class CommissionService
         } catch (UniqueConstraintViolationException $e) {
             // دو درخواست همزمان: دومی سند اولی را می‌گیرد
             return CommissionEntry::query()->where('idempotency_key', $line->idempotencyKey())->firstOrFail();
+        }
+    }
+
+    /**
+     * طلب یک خط سفارش **تحویل‌شده و پول‌رسیده** را از روی **کپی قاعده در همان خط** ثبت می‌کند
+     * (نرخ، مبلغ کمیسیون و سهم فروشنده هنگام ثبت سفارش ثابت شده‌اند؛ اینجا دوباره حساب نمی‌شود).
+     * پایه = مبلغ مشمول کمیسیون (مبلغ خط − تخفیف فروشنده)؛ کرایه هیچ‌وقت نیست.
+     * تکرار، همان سند قبلی را برمی‌گرداند (کلید یکتای order_item:{id}:sale).
+     *
+     * @param  DateTimeInterface|null  $eligibleAt  خالی = هنوز قابل تسویه نیست (پول دست پیک)
+     */
+    public function recordOrderItem(OrderItem $item, SellerOrder $sellerOrder, ?Payment $payment, ?DateTimeInterface $eligibleAt, ?User $actor = null, string $description = ''): CommissionEntry
+    {
+        $key = 'order_item:'.$item->id.':sale';
+        $existing = CommissionEntry::query()->where('idempotency_key', $key)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $seller = $sellerOrder->seller_id ? Seller::query()->find($sellerOrder->seller_id) : null;
+        $gross = Money::sub($item->line_total, $item->seller_discount);
+        $commission = $seller ? Money::of($item->commission_amount) : '0.00';
+        $sellerAmount = $seller ? Money::of($item->seller_amount) : '0.00';
+
+        try {
+            return DB::transaction(function () use ($item, $sellerOrder, $payment, $eligibleAt, $actor, $description, $key, $seller, $gross, $commission, $sellerAmount): CommissionEntry {
+                $entry = CommissionEntry::create([
+                    'idempotency_key' => $key,
+                    'seller_id' => $seller?->id,
+                    'kind' => CommissionEntry::KIND_SALE,
+                    'source_type' => 'order_item',
+                    'source_id' => $item->id,
+                    'order_id' => $item->order_id,
+                    'seller_order_id' => $sellerOrder->id,
+                    'category_id' => $item->category_id,
+                    'description' => $description,
+                    'gross_amount' => $gross,
+                    'commission_rate' => Num::round((string) $item->commission_rate, 2),
+                    'commission_type' => $item->commission_type,
+                    'rate_source' => $item->rate_source,
+                    'commission_amount' => $commission,
+                    'seller_amount' => $sellerAmount,
+                    'currency_code' => $sellerOrder->order?->currency_code ?? 'AFN',
+                    'occurred_at' => now(),
+                    'created_by' => $actor?->id,
+                ]);
+                OrderItem::query()->whereKey($item->id)->toBase()->update(['commission_entry_id' => $entry->id]);
+
+                if ($seller) {
+                    $this->ledger->append($seller, 'earning', $sellerAmount, [
+                        'commission_entry_id' => $entry->id,
+                        'order_id' => $item->order_id,
+                        'seller_order_id' => $sellerOrder->id,
+                        'payment_id' => $payment?->id,
+                        'eligible_at' => $eligibleAt,
+                        'description' => $description,
+                        'created_by' => $actor?->id,
+                    ]);
+                }
+
+                return $entry;
+            });
+        } catch (UniqueConstraintViolationException $e) {
+            return CommissionEntry::query()->where('idempotency_key', $key)->firstOrFail();
         }
     }
 
@@ -269,7 +395,13 @@ class CommissionService
                     $commission = $remainingCommission;
                     $sellerAmount = $remainingSeller;
                 } else {
-                    $commission = $sale->seller_id ? Money::percentOf($gross, $sale->commission_rate) : '0.00';
+                    $commission = match (true) {
+                        $sale->seller_id === null => '0.00',
+                        // مبلغ ثابت: به نسبت مبلغ برگشتی از کمیسیون باقی‌مانده
+                        ($sale->commission_type ?? 'percent') === 'fixed' => Money::of(bcdiv(
+                            bcadd(bcmul($remainingCommission, $gross, 6), bcdiv($remainingGross, '200', 6), 6), $remainingGross, 2)),
+                        default => Money::percentOf($gross, $sale->commission_rate),
+                    };
                     $sellerAmount = $sale->seller_id ? Money::sub($gross, $commission) : '0.00';
                 }
 
@@ -279,9 +411,12 @@ class CommissionService
                     'kind' => CommissionEntry::KIND_REVERSAL,
                     'source_type' => explode(':', $idempotencyKey)[0],
                     'source_id' => is_numeric(explode(':', $idempotencyKey)[1] ?? null) ? (int) explode(':', $idempotencyKey)[1] : null,
+                    'order_id' => $sale->order_id,
+                    'seller_order_id' => $sale->seller_order_id,
                     'category_id' => $sale->category_id,
                     'description' => $description,
                     'gross_amount' => '-'.$gross,
+                    'commission_type' => $sale->commission_type ?? 'percent',
                     'commission_rate' => $sale->commission_rate,
                     'rate_source' => $sale->rate_source,
                     'commission_amount' => Money::sub(0, $commission),
@@ -292,8 +427,14 @@ class CommissionService
                 ]);
 
                 if ($sale->seller_id) {
-                    $this->appendTransaction($sale->seller()->firstOrFail(), 'reversal', Money::sub(0, $sellerAmount), [
+                    // پیوندها و «قابل تسویه بودن» از ردیف طلب اصلی: اگر آن هنوز منتظر پول پیک است، این هم منتظر است
+                    $original = SellerTransaction::query()->where('commission_entry_id', $sale->id)->first();
+                    $this->ledger->append($sale->seller()->firstOrFail(), 'reversal', Money::sub(0, $sellerAmount), [
                         'commission_entry_id' => $entry->id,
+                        'order_id' => $original?->order_id ?? $sale->order_id,
+                        'seller_order_id' => $original?->seller_order_id ?? $sale->seller_order_id,
+                        'payment_id' => $original?->payment_id,
+                        'eligible_at' => $original === null ? now() : ($original->eligible_at ?? null),
                         'description' => $description,
                         'created_by' => $actor?->id,
                     ]);
@@ -311,48 +452,17 @@ class CommissionService
     /** مانده‌ی حساب فروشنده (طلب او از بازارک؛ منفی = بدهکار). */
     public function balance(Seller $seller): string
     {
-        $last = SellerTransaction::query()->where('seller_id', $seller->id)->orderByDesc('id')->value('balance_after');
-
-        return Money::of($last ?? 0);
+        return $this->ledger->balance($seller);
     }
 
-    /** پرداخت به فروشنده. از مانده بیشتر نمی‌شود. */
-    public function settle(Seller $seller, string $amount, string $method, User $actor, ?string $reference = null, ?string $notes = null, ?DateTimeInterface $paidAt = null, ?DateTimeInterface $periodFrom = null, ?DateTimeInterface $periodTo = null): SellerSettlement
+    /**
+     * پرداخت به فروشنده — همان SellerLedger::settle (تسویه‌ی کامل یا جزئی از «قابل تسویه»).
+     *
+     * @throws SettlementException
+     */
+    public function settle(Seller $seller, ?string $amount, string $method, User $actor, ?string $reference = null, ?string $notes = null, ?DateTimeInterface $paidAt = null, ?DateTimeInterface $periodFrom = null, ?DateTimeInterface $periodTo = null): SellerSettlement
     {
-        $amount = Money::of($amount);
-        if (Money::compare($amount, 0) <= 0) {
-            throw new InvalidArgumentException('Settlement amount must be positive.');
-        }
-        if (! in_array($method, SellerSettlement::METHODS, true)) {
-            throw new InvalidArgumentException('Unknown settlement method.');
-        }
-
-        return DB::transaction(function () use ($seller, $amount, $method, $actor, $reference, $notes, $paidAt, $periodFrom, $periodTo): SellerSettlement {
-            $this->lockSeller($seller);
-            if (Money::compare($amount, $this->balance($seller)) > 0) {
-                throw new InvalidArgumentException('Settlement is more than the seller balance.');
-            }
-
-            $settlement = SellerSettlement::create([
-                'seller_id' => $seller->id,
-                'amount' => $amount,
-                'method' => $method,
-                'reference' => $reference,
-                'notes' => $notes,
-                'paid_at' => $paidAt ?? now(),
-                'period_from' => $periodFrom,
-                'period_to' => $periodTo,
-                'created_by' => $actor->id,
-            ]);
-
-            $this->appendTransaction($seller, 'payout', Money::sub(0, $amount), [
-                'settlement_id' => $settlement->id,
-                'description' => $reference,
-                'created_by' => $actor->id,
-            ], lock: false);
-
-            return $settlement;
-        });
+        return $this->ledger->settle($seller, $amount, $method, $actor, $reference, $notes, $paidAt, $periodFrom, $periodTo);
     }
 
     /** اصلاح دستی حساب (مثبت = به طلب فروشنده اضافه شود). دلیل لازم است. */
@@ -363,7 +473,11 @@ class CommissionService
             throw new InvalidArgumentException('Adjustment needs a non-zero amount and a reason.');
         }
 
-        $transaction = $this->appendTransaction($seller, 'adjustment', $amount, [
+        if (! in_array($actor->role, [UserRole::Owner, UserRole::Manager], true)) {
+            throw new SettlementException('not_allowed');
+        }
+
+        $transaction = $this->ledger->append($seller, 'adjustment', $amount, [
             'description' => trim($reason),
             'created_by' => $actor->id,
         ]);
@@ -402,33 +516,5 @@ class CommissionService
                 ->sum('amount')),
             'outstanding' => Money::of((string) $outstanding),
         ];
-    }
-
-    /**
-     * یک ردیف به دفتر حساب فروشنده اضافه می‌کند (با قفل ردیف فروشنده تا مانده درست بماند).
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    private function appendTransaction(Seller $seller, string $type, string $amount, array $attributes = [], bool $lock = true): SellerTransaction
-    {
-        return DB::transaction(function () use ($seller, $type, $amount, $attributes, $lock): SellerTransaction {
-            if ($lock) {
-                $this->lockSeller($seller);
-            }
-            $balance = Money::add($this->balance($seller), $amount);
-
-            return SellerTransaction::create([
-                'seller_id' => $seller->id,
-                'type' => $type,
-                'amount' => Money::of($amount),
-                'balance_after' => $balance,
-                ...$attributes,
-            ]);
-        });
-    }
-
-    private function lockSeller(Seller $seller): void
-    {
-        Seller::query()->whereKey($seller->id)->lockForUpdate()->first();
     }
 }

@@ -86,6 +86,7 @@ return [
         'marketplace.brand_settlement_cycle' => 'weekly',  // صاحب برند: تسویه‌ی هفته‌وار
         'marketplace.local_producer_rate' => 3,            // تولیدکننده‌ی محلی: کمیسیون ۳٪ …
         'marketplace.local_producer_days' => 90,           // … برای ۳ ماه
+        'marketplace.settlement_hold_days' => 0,           // روزهای انتظار پیش از قابل تسویه شدن طلب فروشنده (برای برگشت جنس)
     ],
 
     // مشخصات مدیر اول که seeder می‌سازد. رمز در اولین ورود باید عوض شود.

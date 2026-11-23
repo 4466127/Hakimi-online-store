@@ -11,6 +11,7 @@ use App\Models\PaymentMethod;
 use App\Models\SellerOrder;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\Commission\OrderAccounting;
 use App\Services\Orders\OrderWorkflow;
 use App\Support\Money;
 use App\Support\Num;
@@ -36,6 +37,7 @@ class CashCollectionService
         private readonly PaymentStateMachine $payments,
         private readonly OrderWorkflow $orders,
         private readonly ActivityLogger $logger,
+        private readonly OrderAccounting $accounting,
     ) {}
 
     /**
@@ -95,6 +97,7 @@ class CashCollectionService
 
         return DB::transaction(function () use ($rows, $receiver): int {
             $done = 0;
+            $released = [];
             foreach ($rows as $payment) {
                 /** @var Payment $row */
                 $row = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
@@ -113,11 +116,15 @@ class CashCollectionService
                     'courier_id' => $row->collected_by,
                 ], $receiver);
                 $done++;
+                $released[] = $row->id;
             }
 
             if ($done === 0) {
                 throw new PaymentException('nothing_to_hand_over');
             }
+
+            // پول به صندوق رسید ← طلب فروشندگانِ همین سفارش‌ها قابل تسویه می‌شود
+            $this->accounting->releaseCourierCash($released);
 
             return $done;
         });

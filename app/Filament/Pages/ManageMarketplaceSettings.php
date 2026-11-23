@@ -34,6 +34,7 @@ class ManageMarketplaceSettings extends Page
     private const FIELDS = [
         'default_commission_rate' => 'marketplace.default_commission_rate',
         'default_settlement_cycle' => 'marketplace.default_settlement_cycle',
+        'settlement_hold_days' => 'marketplace.settlement_hold_days',
         'social_free_commission_days' => 'marketplace.social_free_commission_days',
         'local_producer_rate' => 'marketplace.local_producer_rate',
         'local_producer_days' => 'marketplace.local_producer_days',
@@ -108,6 +109,12 @@ class ManageMarketplaceSettings extends Page
                         Select::make('default_settlement_cycle')
                             ->label(__('admin.marketplace_settings.default_settlement_cycle'))
                             ->options($cycles)
+                            ->required(),
+                        TextInput::make('settlement_hold_days')
+                            ->label(__('admin.marketplace_settings.settlement_hold_days'))
+                            ->helperText(__('admin.marketplace_settings.settlement_hold_days_help'))
+                            ->integer()->minValue(0)->maxValue(60)
+                            ->suffix(__('admin.marketplace_settings.days_suffix'))
                             ->required(),
                     ]),
 

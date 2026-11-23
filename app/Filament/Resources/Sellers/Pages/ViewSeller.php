@@ -9,6 +9,8 @@ use App\Filament\Resources\Sellers\SellerResource;
 use App\Models\Seller;
 use App\Models\User;
 use App\Services\Commission\CommissionService;
+use App\Services\Commission\SellerLedger;
+use App\Services\Commission\SettlementException;
 use App\Services\SellerOnboarding;
 use App\Support\Money;
 use App\Support\Num;
@@ -89,20 +91,32 @@ class ViewSeller extends ViewRecord
                 ->icon(Heroicon::OutlinedBanknotes)
                 ->color('primary')
                 ->visible(fn (Seller $record): bool => $this->canReview($record)
-                    && Money::compare(app(CommissionService::class)->balance($record), 0) > 0)
-                ->modalDescription(fn (Seller $record): string => __('admin.finance.settle_help', ['balance' => Num::format(app(CommissionService::class)->balance($record), 2)]))
+                    && Money::compare(app(SellerLedger::class)->balance($record), 0) > 0)
+                ->modalDescription(function (Seller $record): string {
+                    $s = app(SellerLedger::class)->summary($record);
+
+                    return __('admin.finance.settle_help', [
+                        'eligible' => Num::format($s['eligible'], 2),
+                        'pending' => Num::format($s['pending'], 2),
+                        'balance' => Num::format($s['balance'], 2),
+                    ]);
+                })
                 ->schema([
                     TextInput::make('amount')
                         ->label(__('admin.finance.amount'))
+                        ->helperText(__('admin.finance.amount_settle_help'))
                         ->numeric()->minValue(0.01)->step('0.01')
-                        ->default(fn (Seller $record): string => app(CommissionService::class)->balance($record))
+                        ->default(fn (Seller $record): string => app(SellerLedger::class)->summary($record)['eligible'])
                         ->required(),
                     Select::make('method')
                         ->label(__('admin.finance.method'))
                         ->options((array) __('commission.methods'))
                         ->default('cash')
                         ->required(),
-                    TextInput::make('reference')->label(__('admin.finance.reference'))->maxLength(100),
+                    TextInput::make('reference')
+                        ->label(__('admin.finance.reference'))
+                        ->helperText(__('admin.finance.reference_help'))
+                        ->maxLength(100),
                     DatePicker::make('paid_at')->label(__('admin.finance.paid_at'))->default(now())->required(),
                     DatePicker::make('period_from')->label(__('admin.finance.period_from')),
                     DatePicker::make('period_to')->label(__('admin.finance.period_to'))->afterOrEqual('period_from'),
@@ -121,8 +135,8 @@ class ViewSeller extends ViewRecord
                             filled($data['period_from'] ?? null) ? Carbon::parse($data['period_from']) : null,
                             filled($data['period_to'] ?? null) ? Carbon::parse($data['period_to']) : null,
                         );
-                    } catch (InvalidArgumentException $e) {
-                        Notification::make()->danger()->title(__('admin.finance.over_balance', ['balance' => Num::format(app(CommissionService::class)->balance($record), 2)]))->send();
+                    } catch (SettlementException $e) {
+                        Notification::make()->danger()->title(__('admin.finance.not_settled'))->body($e->userMessage())->send();
                         $action->halt();
                     }
                     Notification::make()->success()->title(__('admin.finance.settled'))->send();
@@ -144,8 +158,9 @@ class ViewSeller extends ViewRecord
                 ->action(function (Seller $record, array $data, Action $action): void {
                     try {
                         app(CommissionService::class)->adjust($record, (string) $data['amount'], (string) $data['reason'], $this->reviewer());
-                    } catch (InvalidArgumentException $e) {
-                        Notification::make()->danger()->title(__('admin.finance.invalid'))->send();
+                    } catch (InvalidArgumentException|SettlementException $e) {
+                        Notification::make()->danger()->title(__('admin.finance.invalid'))
+                            ->body($e instanceof SettlementException ? $e->userMessage() : null)->send();
                         $action->halt();
                     }
                     Notification::make()->success()->title(__('admin.finance.adjusted'))->send();

@@ -16,6 +16,7 @@ use App\Models\SellerTransaction;
 use App\Models\User;
 use App\Services\Commission\CommissionService;
 use App\Services\Commission\SaleLine;
+use App\Services\Commission\SettlementException;
 use App\Services\SellerOnboarding;
 use App\Services\Settings;
 use Database\Seeders\ProvinceSeeder;
@@ -81,17 +82,24 @@ class CommissionTest extends TestCase
         $this->assertSame('8.50', $this->service->rateFor($seller, $this->mobile)->rate);
     }
 
-    public function test_seller_special_rates_override_category_rates(): void
+    /**
+     * ترتیب تازه (تصمیم ۳، مرحله‌ی ۴): نرخ عادی فروشنده بعد از نرخ دسته است؛
+     * فقط نرخ «استثنا»ی فروشنده بر دسته غلبه می‌کند.
+     */
+    public function test_seller_exception_rates_override_category_rates_but_regular_ones_do_not(): void
     {
         $seller = $this->seller();
-        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => null, 'rate' => 5]);
-        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->phones->id, 'rate' => 2]);
-        // نرخ ختم‌شده و نرخ آینده اثر ندارد
-        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->accessories->id, 'rate' => 1, 'ends_at' => now()->subDay()]);
-        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->accessories->id, 'rate' => 0, 'starts_at' => now()->addDay()]);
+        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => null, 'rate' => 9]);   // عادی: دسته غلبه می‌کند
+        $this->assertSame(['3.00', 'category'], [$this->service->rateFor($seller, $this->samsung)->rate, $this->service->rateFor($seller, $this->samsung)->source]);
 
-        $this->assertSame(['2.00', 'seller'], [$this->service->rateFor($seller, $this->samsung)->rate, $this->service->rateFor($seller, $this->samsung)->source]);
-        $this->assertSame('5.00', $this->service->rateFor($seller, $this->accessories)->rate);   // نرخ «همه‌ی دسته‌ها»
+        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => null, 'rate' => 5, 'is_exception' => true]);
+        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->phones->id, 'rate' => 2, 'is_exception' => true]);
+        // استثنای ختم‌شده و استثنای آینده اثر ندارد
+        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->accessories->id, 'rate' => 1, 'is_exception' => true, 'ends_at' => now()->subDay()]);
+        SellerCommissionRate::create(['seller_id' => $seller->id, 'category_id' => $this->accessories->id, 'rate' => 0, 'is_exception' => true, 'starts_at' => now()->addDay()]);
+
+        $this->assertSame(['2.00', 'exception'], [$this->service->rateFor($seller, $this->samsung)->rate, $this->service->rateFor($seller, $this->samsung)->source]);
+        $this->assertSame('5.00', $this->service->rateFor($seller, $this->accessories)->rate);   // استثنای «همه‌ی دسته‌ها»
         $this->assertSame('3.00', $this->service->rateFor($this->seller(), $this->samsung)->rate); // فروشنده‌ی دیگر
     }
 
@@ -200,7 +208,7 @@ class CommissionTest extends TestCase
         $this->assertSame('700.00', $this->service->balance($seller));
         $this->assertSame('payout', SellerTransaction::query()->where('settlement_id', $settlement->id)->value('type'));
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionObject(new SettlementException('more_than_eligible'));
         $this->service->settle($seller, '701', 'cash', $owner);
     }
 

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use LogicException;
 
@@ -23,6 +24,10 @@ class SellerSettlement extends Model
     use LogsActivity;
 
     public const METHODS = ['cash', 'hesabpay', 'bank_transfer'];
+
+    public const NUMBER_PREFIX = 'SP-';
+
+    public const NUMBER_BASE = 100000;
 
     protected $guarded = ['id'];
 
@@ -41,7 +46,24 @@ class SellerSettlement extends Model
         static::creating(function (SellerSettlement $settlement): void {
             $settlement->uuid ??= (string) Str::uuid();
         });
+        static::updating(function (SellerSettlement $settlement): void {
+            // مبلغ، فروشنده و تاریخ پرداخت سند مالی‌اند؛ فقط شماره (یک بار، بعد از ساختن) گذاشته می‌شود
+            if (array_diff(array_keys($settlement->getDirty()), ['number']) !== [] || $settlement->getOriginal('number') !== null) {
+                throw new LogicException('Settlements are immutable.');
+            }
+        });
         static::deleting(fn () => throw new LogicException('Settlements cannot be deleted.'));
+    }
+
+    public static function numberFor(int $id): string
+    {
+        return self::NUMBER_PREFIX.(self::NUMBER_BASE + $id);
+    }
+
+    /** ردیف‌های دفتر که با همین تسویه پرداخت شد. */
+    public function items(): HasMany
+    {
+        return $this->hasMany(SellerSettlementItem::class, 'settlement_id');
     }
 
     public function seller(): BelongsTo

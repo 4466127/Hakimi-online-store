@@ -17,17 +17,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $seller_id
  * @property int|null $category_id
  * @property string $rate
+ * @property string $type percent | fixed (مبلغ ثابت برای هر عدد جنس)
+ * @property string|null $fixed_amount
+ * @property bool $is_exception «استثنا»: بر قاعده‌ی جنس و دسته غلبه می‌کند (مزایای شروع، توافق ویژه)
+ * @property bool $is_active
  */
 class SellerCommissionRate extends Model
 {
     use LogsActivity;
 
-    protected $fillable = ['seller_id', 'category_id', 'rate', 'starts_at', 'ends_at', 'reason', 'note', 'created_by'];
+    public const TYPE_PERCENT = 'percent';
+
+    public const TYPE_FIXED = 'fixed';
+
+    protected $fillable = ['seller_id', 'category_id', 'type', 'rate', 'fixed_amount', 'is_exception', 'is_active',
+        'starts_at', 'ends_at', 'reason', 'note', 'created_by'];
 
     protected function casts(): array
     {
         return [
             'rate' => 'decimal:2',
+            'fixed_amount' => 'decimal:2',
+            'is_exception' => 'boolean',
+            'is_active' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'category_id' => 'integer',
@@ -44,10 +56,11 @@ class SellerCommissionRate extends Model
         return $this->belongsTo(Category::class)->withTrashed();
     }
 
-    /** نرخ‌هایی که در این لحظه فعال است. */
+    /** نرخ‌هایی که در این لحظه روشن و در بازه‌ی تاریخ‌اند. */
     public function scopeActiveAt(Builder $query, DateTimeInterface $at): Builder
     {
         return $query
+            ->where('is_active', true)
             ->where(fn (Builder $q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $at))
             ->where(fn (Builder $q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', $at));
     }
@@ -61,6 +74,6 @@ class SellerCommissionRate extends Model
 
     public function activityLabel(): string
     {
-        return $this->rate.'%';
+        return $this->type === self::TYPE_FIXED ? $this->fixed_amount.' AFN' : $this->rate.'%';
     }
 }
