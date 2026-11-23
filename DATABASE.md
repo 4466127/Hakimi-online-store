@@ -491,8 +491,8 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 
 ### ح) محتوا و تنظیمات
 
-#### `banners`
-`id`، `title` JSON NULL، `subtitle` JSON NULL، `image_path`، `mobile_image_path` NULL، `link_url` VARCHAR(255) NULL، `placement` VARCHAR(30) (`home_hero`/`home_strip`/`category_top`)، `position`، `starts_at` NULL، `ends_at` NULL، `is_active`، `clicks_count` INT، timestamps.
+#### `banners` ✓ (۹-۴، `2026_11_23_000600`؛ نسخه‌ی ساده)
+`id`، `title` JSON NULL (متن جایگزین عکس)، `image_path` (WebP، حداکثر ۱۶۰۰ پیکسل)، `link_url` VARCHAR(255) NULL (فقط `/…` یا `http(s)://…`)، `position` UNSIGNED INT، `is_active` BOOL، timestamps. INDEX (`is_active`, `position`). **حداکثر ۵ بنر روشن** (فورم + مدل). ستون‌های طرح قبلی (`subtitle`، `mobile_image_path`، `placement`، `starts_at/ends_at`، `clicks_count`) به خواست صاحب پروژه **بعداً**.
 
 #### `home_sections` — بخش‌های صفحه‌ی اصلی (ترتیب و محتوا از پنل)
 `id`، `type` VARCHAR(30) (`categories`/`featured`/`new`/`bestsellers`/`promotion`/`category_products`/`custom_html`)، `title` JSON NULL، `config` JSON (مثلاً `category_id`، تعداد)، `position`، `is_active`، timestamps.

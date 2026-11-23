@@ -1,6 +1,6 @@
 {{--
     صفحه‌ی اصلی: معرفی فروشگاه، دسته‌های اصلی، پیشنهاد ویژه و تازه‌ترین اجناس، تحویل، اعتماد.
-    بنرها در مرحله‌ی ۳-۴ می‌آید.
+    بنرها (مرحله‌ی ۹-۴): حداکثر ۵، بی چرخش خودکار و بی حرکت اضافه؛ مشتری با انگشت یا دکمه ورق می‌زند.
 --}}
 @extends('storefront.layouts.app')
 
@@ -18,6 +18,47 @@
             ['icon' => 'heroicon-o-chat-bubble-left-right', 'key' => 'support'],
         ];
     @endphp
+
+    {{-- بنرها: ورق زدن دستی (scroll-snap)؛ دکمه‌ها فقط یک صفحه جابه‌جا می‌کنند، بی انیمیشن --}}
+    @if ($banners->isNotEmpty())
+        <section class="container-page mt-4 md:mt-6" aria-label="{{ __('store.home.banners_label') }}"
+                 x-data="{ go(step) { const t = this.$refs.track; const dir = getComputedStyle(t).direction === 'rtl' ? -1 : 1; t.scrollBy({ left: step * dir * t.clientWidth, behavior: 'auto' }); } }">
+            <div class="relative">
+                <div x-ref="track" class="flex snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" tabindex="0">
+                    @foreach ($banners as $banner)
+                        @php
+                            $alt = $banner->tr('title') ?: __('store.home.banner_alt', ['n' => \App\Support\Num::toFa((string) $loop->iteration)]);
+                        @endphp
+                        <div class="w-full shrink-0 snap-center" aria-roledescription="slide"
+                             aria-label="{{ \App\Support\Num::toFa((string) $loop->iteration) }} / {{ \App\Support\Num::toFa((string) $banners->count()) }}">
+                            @if ($banner->link_url)
+                                <a href="{{ $banner->link_url }}" @if ($banner->isExternal()) rel="noopener" @endif class="block">
+                            @endif
+                                <img src="{{ $banner->imageUrl() }}" alt="{{ $alt }}" width="1600" height="600"
+                                     @if ($loop->first) fetchpriority="high" @else loading="lazy" @endif
+                                     class="aspect-[2/1] w-full bg-gray-100 object-cover md:aspect-[8/3]">
+                            @if ($banner->link_url)
+                                </a>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+                @if ($banners->count() > 1)
+                    <button type="button" x-on:click="go(-1)" aria-label="{{ __('store.home.banner_prev') }}"
+                            class="absolute start-2 top-1/2 hidden size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow md:flex">
+                        @svg('heroicon-o-chevron-right', 'size-5 rtl:rotate-0 ltr:rotate-180')
+                    </button>
+                    <button type="button" x-on:click="go(1)" aria-label="{{ __('store.home.banner_next') }}"
+                            class="absolute end-2 top-1/2 hidden size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow md:flex">
+                        @svg('heroicon-o-chevron-left', 'size-5 rtl:rotate-0 ltr:rotate-180')
+                    </button>
+                @endif
+            </div>
+            @if ($banners->count() > 1)
+                <p class="mt-1.5 text-center text-xs text-gray-500 md:hidden">{{ __('store.home.banner_swipe', ['count' => \App\Support\Num::toFa((string) $banners->count())]) }}</p>
+            @endif
+        </section>
+    @endif
 
     {{-- معرفی --}}
     <section class="bg-gradient-to-b from-brand-50 to-gray-50">
