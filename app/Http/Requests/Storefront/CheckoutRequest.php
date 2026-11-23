@@ -6,6 +6,7 @@ namespace App\Http\Requests\Storefront;
 
 use App\Rules\AfghanMobile;
 use App\Services\Delivery\DeliveryCalculator;
+use App\Services\Marketing\CampaignAttribution;
 use App\Services\Orders\CheckoutData;
 use App\Support\Phone;
 use Illuminate\Foundation\Http\FormRequest;
@@ -100,6 +101,8 @@ class CheckoutRequest extends FormRequest
     public function toCheckoutData(): CheckoutData
     {
         $isDelivery = $this->string('delivery_method')->toString() === DeliveryCalculator::METHOD_DELIVERY;
+        // برچسب تبلیغ فقط از کوکی رمزشده‌ی خود ما، نه از فورم
+        $campaign = app(CampaignAttribution::class)->current($this);
 
         return new CheckoutData(
             purchaserName: $this->string('purchaser_name')->toString(),
@@ -120,6 +123,9 @@ class CheckoutRequest extends FormRequest
             customerNote: $this->cleaned('customer_note'),
             customerId: $this->user('customer')?->id,
             source: 'web',
+            utmSource: $campaign['source'] ?? null,
+            utmMedium: $campaign['medium'] ?? null,
+            utmCampaign: $campaign['campaign'] ?? null,
             locale: app()->getLocale(),
             ip: $this->ip(),
             userAgent: $this->userAgent(),

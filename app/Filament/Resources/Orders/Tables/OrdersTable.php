@@ -62,6 +62,11 @@ class OrdersTable
                     ->label(__('admin.orders.items_count'))
                     ->formatStateUsing(fn ($state): string => Num::toFa((string) $state))
                     ->toggleable(),
+                TextColumn::make('utm_source')
+                    ->label(__('admin.campaigns.source'))
+                    ->description(fn (Order $record): ?string => $record->utm_campaign)
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('total')
                     ->label(__('admin.orders.total'))
                     ->formatStateUsing(fn ($state): string => Money::format($state))
@@ -83,6 +88,16 @@ class OrdersTable
                         'delivery' => (string) __('checkout.delivery.home'),
                         'pickup' => (string) __('checkout.delivery.pickup'),
                     ]),
+                // «از کدام تبلیغ آمد؟» (مرحله‌ی ۹-۲): فقط مقدارهایی که واقعاً روی سفارش‌ها هست
+                SelectFilter::make('utm_source')
+                    ->label(__('admin.campaigns.source'))
+                    ->options(fn (): array => self::distinct('utm_source')),
+                SelectFilter::make('utm_medium')
+                    ->label(__('admin.campaigns.medium'))
+                    ->options(fn (): array => self::distinct('utm_medium')),
+                SelectFilter::make('utm_campaign')
+                    ->label(__('admin.campaigns.campaign'))
+                    ->options(fn (): array => self::distinct('utm_campaign')),
                 Filter::make('today')
                     ->label(__('admin.orders.filter_today'))
                     ->query(fn (Builder $query): Builder => $query->where('placed_at', '>=', now()->startOfDay())),
@@ -99,5 +114,12 @@ class OrdersTable
                 ViewAction::make(),
             ])
             ->emptyStateHeading(__('admin.orders.empty'));
+    }
+
+    /** @return array<string, string> */
+    private static function distinct(string $column): array
+    {
+        return Order::query()->whereNotNull($column)->distinct()->orderBy($column)->limit(200)
+            ->pluck($column, $column)->all();
     }
 }

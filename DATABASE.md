@@ -411,7 +411,7 @@ Index: (`status`, `placed_at`)، `customer_id`، `recipient_phone`، `payment_st
 | delivery_zone_id, delivery_date, delivery_weight_grams | | کپی از `DeliveryCalculator` |
 | coupon_id, coupon_code | NULL | مرحله‌ی ۹ |
 | customer_note, admin_note | TEXT NULL | |
-| source, utm_source, utm_medium, utm_campaign | VARCHAR NULL | `web/admin/whatsapp`؛ ردیابی بازاریابی |
+| source, utm_source, utm_medium, utm_campaign | VARCHAR NULL | `web/admin/whatsapp`؛ ردیابی بازاریابی — **utm ساخته شد (۹-۲، `2026_11_23_000400`):** `utm_source`/`utm_medium` VARCHAR(50)، `utm_campaign` VARCHAR(100)، INDEX (`utm_source`, `placed_at`). فقط از کوکی رمزشده‌ی ۳۰ روزه‌ی خود سایت (اولین برچسب درست)، پاک‌شده (`a-z0-9._-`)، بی IP |
 | needs_stock_check | BOOL | |
 | locale, ip, user_agent | | |
 | placed_at, confirmed_at, shipped_at, delivered_at, cancelled_at | DATETIME NULL | |

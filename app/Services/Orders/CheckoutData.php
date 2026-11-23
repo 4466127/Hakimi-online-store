@@ -33,6 +33,10 @@ final readonly class CheckoutData
         public ?string $customerNote = null,
         public ?int $customerId = null,
         public string $source = 'web',
+        /** برچسب تبلیغ (مرحله‌ی ۹-۲؛ پاک‌شده در CampaignAttribution) */
+        public ?string $utmSource = null,
+        public ?string $utmMedium = null,
+        public ?string $utmCampaign = null,
         public string $locale = 'fa',
         public ?string $ip = null,
         public ?string $userAgent = null,
