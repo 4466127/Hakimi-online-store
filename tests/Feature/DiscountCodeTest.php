@@ -11,6 +11,7 @@ use App\Filament\Resources\DiscountCodes\Pages\EditDiscountCode;
 use App\Filament\Resources\DiscountCodes\Pages\ListDiscountCodes;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Models\CommissionEntry;
+use App\Models\Customer;
 use App\Models\DiscountCode;
 use App\Models\DiscountCodeRedemption;
 use App\Models\Order;
@@ -30,6 +31,7 @@ use App\Services\Orders\OrderStateMachine;
 use App\Services\Payments\CashCollection;
 use App\Services\Payments\CashCollectionService;
 use App\Support\Money;
+use Database\Factories\CustomerFactory;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -216,6 +218,26 @@ class DiscountCodeTest extends TestCase
 
         $this->get(route('order.show', ['uuid' => $order->uuid]))->assertOk()
             ->assertSee(__('checkout.discount.row_with_code', ['code' => 'EID1405']));
+    }
+
+    public function test_applied_code_does_not_pass_to_another_customer_on_the_same_browser(): void
+    {
+        $this->code(['code' => 'EID1405', 'value' => '10']);
+        $first = Customer::factory()->create(['phone' => '0700111222']);
+        $second = Customer::factory()->create(['phone' => '0700333444']);
+
+        // مشتری اول کد را زده و بیرون می‌رود
+        $this->actingAs($first->fresh(), 'customer')
+            ->withSession([CheckoutController::DISCOUNT_SESSION_KEY => 'EID1405'])
+            ->post('/logout')->assertRedirect();
+        $this->assertNull(session(CheckoutController::DISCOUNT_SESSION_KEY));
+
+        // اگر بی خروج، مشتری دیگری در همین مرورگر وارد شود هم کد پاک می‌شود
+        $this->withSession([CheckoutController::DISCOUNT_SESSION_KEY => 'EID1405']);
+        auth('customer')->logout();
+        $this->post('/login', ['phone' => '0700333444', 'password' => CustomerFactory::PASSWORD])->assertRedirect();
+        $this->assertAuthenticatedAs($second, 'customer');
+        $this->assertNull(session(CheckoutController::DISCOUNT_SESSION_KEY));
     }
 
     public function test_wrong_code_shows_an_error_and_keeps_the_form(): void

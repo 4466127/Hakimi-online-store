@@ -31,6 +31,7 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer, $request->boolean('remember'));
         $request->session()->regenerate();
+        $this->forgetCheckoutState($request);
 
         $customer->forceFill(['last_login_at' => now()])->saveQuietly();
 
@@ -55,6 +56,7 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer, true);
         $request->session()->regenerate();
+        $this->forgetCheckoutState($request);
         $customer->forceFill(['last_login_at' => now()])->saveQuietly();
 
         return redirect()->intended(route('account'))
@@ -66,7 +68,17 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->logout();
         // فقط معلومات مشتری پاک شود؛ اگر مدیر هم در همین مرورگر وارد است بیرون نشود
         $request->session()->regenerateToken();
+        $this->forgetCheckoutState($request);
 
         return redirect()->route('home');
+    }
+
+    /**
+     * کد تخفیفِ اعمال‌شده مال همان کسی است که آن را زده. با ورود، ثبت‌نام یا خروج پاک می‌شود
+     * تا در همین مرورگر به مشتری بعدی نرسد (خطای گزارش‌شده‌ی صاحب پروژه، ۳ قوس ۱۴۰۵).
+     */
+    private function forgetCheckoutState(Request $request): void
+    {
+        $request->session()->forget(CheckoutController::DISCOUNT_SESSION_KEY);
     }
 }
