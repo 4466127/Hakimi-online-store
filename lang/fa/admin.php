@@ -720,6 +720,7 @@ return [
         'options' => 'گزینه‌ها',
         'options_help' => 'هر گزینه یک سطر. با فلش‌ها ترتیب را عوض کنید.',
         'add_option' => 'گزینه‌ی تازه',
+        'add_option_to' => 'گزینه‌ی تازه برای «:name»',
         'option_value' => 'مقدار',
         'option_value_placeholder' => 'مثلاً: ۴۲ یا سیاه',
         'option_slug' => 'آدرس',

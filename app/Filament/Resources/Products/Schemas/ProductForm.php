@@ -397,10 +397,7 @@ class ProductForm
             $title = $attribute->tr('name').($attribute->unit ? ' ('.$attribute->unit.')' : '');
 
             $field = match ($attribute->type) {
-                'select', 'multiselect' => Select::make($name)
-                    ->options($attribute->options->mapWithKeys(fn (AttributeOption $o) => [$o->id => $o->tr('value')])->all())
-                    ->multiple($attribute->type === 'multiselect')
-                    ->searchable(),
+                'select', 'multiselect' => self::specSelect($name, $attribute),
                 'number' => TextInput::make($name)->inputMode('decimal')->extraInputAttributes(['dir' => 'ltr'])->maxLength(20),
                 'boolean' => Toggle::make($name),
                 default => TextInput::make($name)->maxLength(255),
@@ -414,6 +411,57 @@ class ProductForm
         }
 
         return $fields;
+    }
+
+    /**
+     * لیست انتخابی یک مشخصه. اگر گزینه‌ی لازم در لیست نبود، با «+» همین‌جا اضافه می‌شود
+     * (خواست صاحب پروژه، ۳ قوس ۱۴۰۵) — بی رفتن به صفحه‌ی «مشخصه‌ها». حذف گزینه فقط در همان صفحه است.
+     */
+    private static function specSelect(string $name, Attribute $attribute): Select
+    {
+        $id = $attribute->id;
+
+        return Select::make($name)
+            // از دیتابیس، تا گزینه‌ی تازه فوراً در لیست باشد
+            ->options(fn (): array => AttributeOption::query()->where('attribute_id', $id)->where('is_active', true)
+                ->orderBy('position')->orderBy('id')->get()
+                ->mapWithKeys(fn (AttributeOption $o) => [$o->id => $o->tr('value')])->all())
+            ->multiple($attribute->type === 'multiselect')
+            ->searchable()
+            ->createOptionForm([
+                TextInput::make('value')
+                    ->label(__('admin.attributes.option_value'))
+                    ->placeholder(__('admin.attributes.option_value_placeholder'))
+                    ->required()
+                    ->maxLength(100),
+            ])
+            ->createOptionUsing(fn (array $data): int => self::addOption($id, (string) $data['value']))
+            ->createOptionAction(fn (Action $action): Action => $action
+                ->modalHeading(__('admin.attributes.add_option_to', ['name' => $attribute->tr('name')]))
+                ->modalSubmitActionLabel(__('admin.attributes.add_option'))
+                ->visible(fn (): bool => (bool) auth()->user()?->can('update', $attribute)));
+    }
+
+    /** گزینه‌ی تازه (یا همان گزینه، اگر با همین نام بود) و شناسه‌اش. */
+    public static function addOption(int $attributeId, string $value): int
+    {
+        $value = trim($value);
+        $slug = Persian::slug($value, 100);
+        $existing = AttributeOption::query()->where('attribute_id', $attributeId)->where('slug', $slug)->first();
+        if ($existing !== null) {
+            if (! $existing->is_active) {
+                $existing->forceFill(['is_active' => true])->save();
+            }
+
+            return $existing->id;
+        }
+
+        return AttributeOption::create([
+            'attribute_id' => $attributeId,
+            'value' => ['fa' => $value],
+            'slug' => $slug,
+            'position' => (int) AttributeOption::query()->where('attribute_id', $attributeId)->max('position') + 1,
+        ])->id;
     }
 
     private static function descriptionSection(): Section

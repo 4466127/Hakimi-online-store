@@ -32,3 +32,6 @@ Thumbs.db
 /public/css/filament
 /public/js/filament
 /public/fonts/filament
+
+# پشتیبان دیتابیس (داده‌ی واقعی) هیچ‌وقت به GitHub نمی‌رود
+/storage/backups/

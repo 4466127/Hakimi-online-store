@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             PageSeeder::class,
             CategorySeeder::class,
             CatalogAttributeSeeder::class,
+            CatalogTaxonomySeeder::class,
             PaymentMethodSeeder::class,
             OwnerSeeder::class,
         ]);
