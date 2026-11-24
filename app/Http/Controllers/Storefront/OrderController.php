@@ -9,6 +9,8 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Services\Payments\Gateways\HesabPayGateway;
+use App\Services\Payments\OnlinePaymentService;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,6 +39,10 @@ class OrderController extends Controller
             'paid' => $order->payments->where('status', Payment::PAID)->last(),
             'method' => PaymentMethod::query()->where('code', $order->payment_method_code)->first(),
             'justPlaced' => (bool) $request->session()->get('placed', false),
+            // پرداخت آنلاین منتظر (حساب‌پی): دکمه‌های «پرداخت» و «نقد می‌دهم»
+            'onlinePending' => app(OnlinePaymentService::class)->pendingPayment($order),
+            'cancelMinutes' => max(30, (int) config('store.payments.online_cancel_after_minutes', 120)),
+            'sandbox' => app(HesabPayGateway::class)->isSandbox(),
         ]);
     }
 

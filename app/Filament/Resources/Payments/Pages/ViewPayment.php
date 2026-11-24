@@ -8,8 +8,10 @@ use App\Filament\Resources\Payments\PaymentResource;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\Payments\CashCollectionService;
+use App\Services\Payments\Gateways\HesabPayGateway;
 use App\Services\Payments\PaymentException;
 use App\Support\AdminNotify;
+use App\Support\Money;
 use App\Support\Num;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
@@ -38,6 +40,35 @@ class ViewPayment extends ViewRecord
                 ->visible(fn (Payment $record): bool => $record->isPaid())
                 ->url(fn (Payment $record): string => route('admin.receipt', ['payment' => $record->uuid]))
                 ->openUrlInNewTab(),
+
+            // تطبیق با حساب‌پی: فقط نشان می‌دهد، هیچ وضعیتی را عوض نمی‌کند (پرداخت‌شده فقط با پیام امضاشده)
+            Action::make('gateway_lookup')
+                ->label(__('admin.payments.gateway_lookup'))
+                ->icon(Heroicon::OutlinedMagnifyingGlass)
+                ->color('gray')
+                ->visible(fn (Payment $record): bool => $record->provider === HesabPayGateway::CODE && $record->provider_reference !== null
+                    && $this->canReceive() && app(HesabPayGateway::class)->isReady())
+                ->action(function (Payment $record): void {
+                    try {
+                        $result = app(HesabPayGateway::class)->lookup((string) $record->provider_reference);
+                    } catch (PaymentException $e) {
+                        AdminNotify::failed((string) __('admin.payments.gateway_lookup_failed'), $e->userMessage());
+
+                        return;
+                    }
+                    if (! $result['found']) {
+                        AdminNotify::failed((string) __('admin.payments.gateway_lookup_failed'), (string) __('admin.payments.gateway_lookup_missing', ['http' => $result['http']]));
+
+                        return;
+                    }
+                    $data = $result['data'];
+                    AdminNotify::done((string) __('admin.payments.gateway_lookup_result', [
+                        'amount' => is_numeric($data['amount'] ?? null) ? Money::format((string) $data['amount']) : '—',
+                        'status' => is_scalar($data['status'] ?? null) ? (string) $data['status'] : '—',
+                        'date' => is_scalar($data['transaction_date'] ?? null) ? (string) $data['transaction_date'] : '—',
+                        'to' => is_scalar($data['to_account_number'] ?? null) ? (string) $data['to_account_number'] : '—',
+                    ]));
+                }),
 
             Action::make('handover')
                 ->label(__('admin.payments.handover'))

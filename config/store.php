@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Payments\Gateways\HesabPayGateway;
 use App\Services\Payments\Gateways\LogGateway;
 
 /*
@@ -64,15 +65,18 @@ return [
     /*
      * پرداخت آنلاین: درایور هر درگاه (مرحله‌ی ۵).
      *
-     * فعلاً فقط `log` هست که **هیچ پولی جابه‌جا نمی‌کند** و می‌گوید «آماده نیست».
-     * وقتی حساب پذیرنده‌ی حساب‌پی و کلید API آماده شد، درایور واقعی اینجا اضافه می‌شود
-     * (`'hesabpay' => \App\Services\Payments\Gateways\HesabPayGateway::class`) و کلیدها
-     * فقط در `.env` می‌مانند. جزئیات و پرسش‌های باز: docs/hesabpay.md
+     * `log` هیچ پولی جابه‌جا نمی‌کند و می‌گوید «آماده نیست». `hesabpay` از روی مستندات رسمی
+     * ساخته شد (۳ قوس ۱۴۰۵) و فقط وقتی «آماده» است که HESABPAY_API_KEY در `.env` باشد؛ مدیر هم
+     * باید روش را در پنل روشن کند. جزئیات و کارهای مانده: docs/hesabpay.md
      */
     'payments' => [
         'drivers' => [
             'log' => LogGateway::class,
+            'hesabpay' => HesabPayGateway::class,
         ],
+        // سفارش آنلاینی که تا این چند دقیقه پرداخت نشد، خودکار لغو و موجودی آزاد می‌شود
+        // (نشست حساب‌پی ۱۵ دقیقه است؛ پیام‌های دیرآمده‌ی حساب‌پی تا حدود ۵۰ دقیقه بعد هم می‌رسد).
+        'online_cancel_after_minutes' => (int) env('ONLINE_PAYMENT_CANCEL_MINUTES', 120),
     ],
 
     // سبد خرید: بیشترین تعداد یک نوع در سبد (و سفارش)؛ اگر موجودی کمتر بود موجودی.

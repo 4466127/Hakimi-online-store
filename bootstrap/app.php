@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         // برچسب لینک تبلیغ (utm) در کوکی رمزشده‌ی ۳۰ روزه (مرحله‌ی ۹-۲؛ بعد از رمزگذاری کوکی‌ها)
         $middleware->web(append: [CaptureCampaign::class]);
+        // پیام سرور-به-سرور حساب‌پی توکن CSRF ندارد؛ اصالتش با بررسی امضا نزد خود حساب‌پی است
+        $middleware->validateCsrfTokens(except: ['webhooks/hesabpay']);
 
         // مشتریِ واردنشده ← صفحه‌ی ورود فروشگاه؛ مشتریِ واردشده که به ورود/ثبت‌نام رفت ← حساب
         // (پنل مدیریت مسیر ورود خودش را دارد و به این دو دست نمی‌زند)

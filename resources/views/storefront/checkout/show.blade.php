@@ -388,7 +388,9 @@
                         @if ($methods->isEmpty())
                             <p class="alert alert-warning" role="alert">{{ __('checkout.payment.none') }}</p>
                         @endif
-                        <p class="form-help mt-3">{{ __('checkout.payment.online_soon') }}</p>
+                        @unless ($methods->contains(fn ($row) => ! $row['method']->isCash()))
+                            <p class="form-help mt-3">{{ __('checkout.payment.online_soon') }}</p>
+                        @endunless
                     </fieldset>
 
                     <div class="mt-5 border-t border-gray-100 pt-5">

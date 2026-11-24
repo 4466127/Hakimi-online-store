@@ -460,9 +460,10 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 | **delivery_code_verified** | BOOL، پیش‌فرض ۰ (migration `2026_11_23_000200`): کد تحویل مشتری هنگام گرفتن پول بررسی و درست بود — سندِ تحویلِ درست روی خود رسید |
 | payer_name, transfer_reference, receipt_path | حواله/رسید (**MVP ساخته نمی‌شود**؛ تصمیم ۱ قوس ۱۴۰۵) |
 | note، timestamps | |
+| **gateway_session_id** VARCHAR(64) NULL (index)، **gateway_checkout_url** VARCHAR(1000) NULL | **ساخته شد (`2026_11_24_000100`):** نشست ۱۵ دقیقه‌ای حساب‌پی و آدرس صفحه‌ی پرداخت (تا منقضی نشده دوباره استفاده می‌شود). شماره‌ی تراکنش حساب‌پی بعد از پرداخت در `provider_reference` |
 
-#### `payment_events` — رویدادهای درگاه و دستی (فقط افزودن)
-`id`، `payment_id` FK NULL، `provider`، `event_id` (**UNIQUE** با provider)، `type`، `payload` JSON (بی هدر کلید و بی داده‌ی کارت)، `signature_valid` BOOL، `processed_at` NULL، `error` NULL، `created_at`.
+#### `payment_events` — پیام‌های سرور-به-سرور درگاه (فقط افزودن) — **ساخته شد (`2026_11_24_000100`)**
+`id`، `provider`، `event_id` (**UNIQUE** با provider؛ حساب‌پی: `txn:<شماره‌ی تراکنش>` یا برای ردِ بی‌تراکنش `fail:<نشست>:<مرحله>:<دلیل>`)، `event_type` (`payment_success/payment_failure`)، `payment_id` FK NULL، `reference` (uuid پرداخت ما = `user_id` حساب‌پی)، `transaction_id`، `amount`، `outcome` (`paid/duplicate/amount_mismatch/unknown_payment/paid_on_closed/double_payment/failure_recorded/ignored`)، `needs_review` BOOL، `reviewed_by`، `reviewed_at`، `payload` JSON (**بی امضا**، بی کلید، بی داده‌ی کارت)، `created_at`. فقط پیامی که امضایش نزد حساب‌پی تأیید شد ثبت می‌شود. مدل ویرایش و حذف را رد می‌کند (جز «بررسی شد»).
 
 #### `collection_points` — نمایندگی‌ها / نقطه‌های دریافت نقد و تحویل حضوری
 `id`، `name` JSON، `type` (`office/agent`)، `province_id`، `city`، `address`، `phone`، `hours` JSON، `instructions` JSON، `user_id` FK NULL (مسئول)، `is_active`، `position`. از پنل ساخته می‌شود؛ «دفتر مرکزی» اولین ردیف است. (تصمیم ۱ قوس ۱۴۰۵: نمایندگی‌ها از همان اول؛ نه فقط دفتر مرکزی.)

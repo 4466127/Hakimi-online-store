@@ -27,6 +27,7 @@
 
 @section('content')
     <div class="container-page py-6 md:py-8">
+        <x-storefront.flash />
         @if ($justPlaced)
             <div class="mb-5 rounded-2xl border border-green-200 bg-green-50 p-5 text-center" role="status">
                 @svg('heroicon-o-check-circle', 'mx-auto size-12 text-green-600')
@@ -64,6 +65,32 @@
                             <dd class="mt-1 text-sm text-gray-900">{{ __('checkout.payment_status.'.$order->payment_status) }}</dd>
                         </div>
                     </dl>
+
+                    {{-- پرداخت آنلاین منتظر (حساب‌پی): دوباره رفتن به صفحه‌ی پرداخت، یا نقد --}}
+                    @if ($onlinePending && $order->isOpen())
+                        <div class="mt-4 rounded-xl border border-accent-200 bg-accent-50 p-4" id="online-payment">
+                            <p class="text-sm font-bold text-accent-900">{{ __('payments.online.pay_title') }}</p>
+                            <p class="mt-1.5 text-xs leading-6 text-accent-900">{{ __('payments.online.pay_help') }}</p>
+                            <p class="mt-1 text-xs leading-6 text-accent-900">{{ __('payments.online.cancel_warning', ['minutes' => Num::toFa((string) $cancelMinutes)]) }}</p>
+                            @if ($sandbox)
+                                <p class="mt-1 text-xs font-medium text-accent-900">{{ __('payments.online.sandbox_notice') }}</p>
+                            @endif
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <form method="POST" action="{{ route('order.pay', ['uuid' => $order->uuid]) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-primary">
+                                        @svg('heroicon-o-credit-card', 'size-5')
+                                        {{ __('payments.online.pay_button') }}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('order.pay.cash', ['uuid' => $order->uuid]) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline">{{ __('payments.online.switch_button') }}</button>
+                                </form>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-600">{{ __($order->delivery_method === 'pickup' ? 'payments.online.switch_help_pickup' : 'payments.online.switch_help_delivery') }}</p>
+                        </div>
+                    @endif
 
                     {{-- پول گرفته شد: رسید مشتری (مرحله‌ی ۳) --}}
                     @if ($paid)

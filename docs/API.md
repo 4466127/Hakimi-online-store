@@ -20,6 +20,15 @@
 | `GET/POST /track` | پیگیری با شماره‌ی سفارش + تلفن/ایمیل | `throttle:storefront-track` (۵/دقیقه/IP)، پیام یکسان برای «پیدا نشد» |
 | `GET /account/orders` | سفارش‌های من | `auth:customer` |
 
+> **مرحله‌ی ۵، حساب‌پی (۳ قوس ۱۴۰۵) ساخته شد**، از روی مستندات رسمی (`docs/hesabpay.md`):
+> - `POST /order/{uuid}/pay`: رفتن دوباره به صفحه‌ی حساب‌پی (`throttle:online-payment`، ۱۰ در دقیقه).
+> - `POST /order/{uuid}/pay/cash`: عوض کردن به نقد.
+> - `GET /payment/hesabpay/{payment-uuid}/return` و `/failed`: فقط پیام؛ هیچ وضعیتی عوض نمی‌شود.
+> - `POST /webhooks/hesabpay`: بی CSRF، `throttle:payment-webhook` ۱۲۰ در دقیقه.
+>   - امضای نادرست ← ۴۰۱؛ JSON نادرست ← ۴۰۰؛ حساب‌پی در دسترس نیست ← ۵۰۳ (حساب‌پی دوباره می‌فرستد).
+>   - آزمون پورتال ← `{"success":true}`؛ پیام پرداخت ← ۲۰۰ با `outcome`.
+> - سرویس‌ها: `OnlinePaymentService::begin/handle/switchToCash/cancelStale` و `HesabPayGateway::start/verify/lookup`.
+
 ## ۲. Webhook درگاه
 
 `POST /webhooks/{provider}` (مثلاً `hesabpay`) — **بیرون از CSRF**، فقط HTTPS.

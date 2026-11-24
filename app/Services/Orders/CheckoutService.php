@@ -163,7 +163,8 @@ class CheckoutService
             ]);
             $order->forceFill([
                 'status' => Order::STATUS_PENDING,
-                'payment_status' => 'awaiting_collection',
+                // نقد: «منتظر گرفتن پول»؛ آنلاین: «منتظر پرداخت» تا پیام امضاشده‌ی درگاه برسد
+                'payment_status' => $method->isCash() ? 'awaiting_collection' : 'pending',
                 'paid_total' => '0.00',
                 'refunded_total' => '0.00',
                 // کد تحویل: مشتری آن را هنگام گرفتن جنس به پیک یا نمایندگی می‌گوید
@@ -190,7 +191,8 @@ class CheckoutService
                 $this->stock->reserve($variantId, $qty, 'seller_order', $sellerOrderId);
             }
 
-            // ── پرداخت (نقد: منتظر گرفتن پول) ──
+            // ── پرداخت (نقد: منتظر گرفتن پول؛ آنلاین: منتظر پرداخت در صفحه‌ی درگاه) ──
+            $paymentStatus = $method->isCash() ? Payment::AWAITING_COLLECTION : Payment::PENDING;
             $payment = new Payment([
                 'order_id' => $order->id,
                 'method_code' => $method->code,
@@ -199,12 +201,12 @@ class CheckoutService
             ]);
             $payment->forceFill([
                 'amount' => $total,
-                'status' => Payment::AWAITING_COLLECTION,
+                'status' => $paymentStatus,
                 'idempotency_key' => 'order:'.$order->id.':attempt:1',
             ])->save();
 
             $this->history('order', $order->id, null, Order::STATUS_PENDING, null);
-            $this->history('payment', $payment->id, null, Payment::AWAITING_COLLECTION, null);
+            $this->history('payment', $payment->id, null, $paymentStatus, null);
 
             if ($discountCode !== null) {
                 $this->discounts->redeem($order, $discountCode, $discount, $data->purchaserPhone, $data->customerId);

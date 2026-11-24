@@ -17,7 +17,7 @@ class SeoController extends Controller
 {
     /** مسیرهایی که گوگل نباید بخواند (همان‌ها که SecurityHeaders noindex می‌دهد). */
     public const PRIVATE_PATHS = [
-        '/admin', '/livewire', '/cart', '/checkout', '/account', '/order/', '/track',
+        '/admin', '/livewire', '/cart', '/checkout', '/account', '/order/', '/payment/', '/webhooks/', '/track',
         '/login', '/register', '/logout', '/sell/onboarding', '/search',
     ];
 

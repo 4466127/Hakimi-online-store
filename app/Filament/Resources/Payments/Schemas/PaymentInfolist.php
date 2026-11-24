@@ -93,6 +93,17 @@ class PaymentInfolist
                         TextEntry::make('payer_name')
                             ->label(__('admin.payments.payer'))
                             ->placeholder('—'),
+                        // پرداخت آنلاین (حساب‌پی): شناسه‌ی تراکنش و نشست درگاه
+                        TextEntry::make('provider_reference')
+                            ->label(__('admin.payments.gateway_transaction'))
+                            ->copyable()
+                            ->extraAttributes(['dir' => 'ltr'])
+                            ->visible(fn (Payment $record): bool => $record->provider !== null),
+                        TextEntry::make('gateway_session_id')
+                            ->label(__('admin.payments.gateway_session'))
+                            ->extraAttributes(['dir' => 'ltr'])
+                            ->placeholder('—')
+                            ->visible(fn (Payment $record): bool => $record->provider !== null),
                         TextEntry::make('note')
                             ->label(__('admin.payments.note'))
                             ->placeholder('—')

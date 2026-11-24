@@ -13,6 +13,8 @@ use App\Services\Marketing\DiscountCodeService;
 use App\Services\Orders\CheckoutException;
 use App\Services\Orders\CheckoutPage;
 use App\Services\Orders\CheckoutService;
+use App\Services\Payments\OnlinePaymentService;
+use App\Services\Payments\PaymentException;
 use App\Support\Money;
 use App\Support\Phone;
 use Illuminate\Http\RedirectResponse;
@@ -134,6 +136,17 @@ class CheckoutController extends Controller
         // سفارش‌های همین نشست (حداکثر ۱۰ تا) تا مهمان بتواند بعداً پیدایش کند
         $recent = array_values(array_unique(array_merge([$order->uuid], (array) $request->session()->get(self::RECENT_SESSION_KEY, []))));
         $request->session()->put(self::RECENT_SESSION_KEY, array_slice($recent, 0, 10));
+
+        // پرداخت آنلاین: مستقیم به صفحه‌ی حساب‌پی؛ اگر باز نشد، صفحه‌ی سفارش با دکمه‌ی «دوباره» و «نقد»
+        $online = app(OnlinePaymentService::class);
+        $pending = $online->pendingPayment($order);
+        if ($pending !== null) {
+            try {
+                return redirect()->away($online->begin($pending));
+            } catch (PaymentException $e) {
+                return redirect()->route('order.show', ['uuid' => $order->uuid])->with('placed', true)->with('error', $e->userMessage());
+            }
+        }
 
         return redirect()->route('order.show', ['uuid' => $order->uuid])->with('placed', true);
     }

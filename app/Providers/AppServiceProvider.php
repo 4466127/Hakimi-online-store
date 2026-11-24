@@ -73,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('discount-code', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
 
         // پیگیری سفارش: ۱۵ بار در دقیقه از یک IP (جلوی امتحان کردن شماره‌های تصادفی)
+        // رفتن به صفحه‌ی پرداخت حساب‌پی (هر بار یک نشست ساخته می‌شود)
+        RateLimiter::for('online-payment', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        // پیام‌های حساب‌پی (با تکرارهایش) — سقف بالا؛ هر پیام نزد حساب‌پی بررسی می‌شود
+        RateLimiter::for('payment-webhook', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
         RateLimiter::for('order-track', fn (Request $request) => Limit::perMinute(15)->by($request->ip()));
 
         // صفحه‌بندی فارسی و سبک برای سایت مشتری (پنل مدیریت صفحه‌بندی خودش را دارد)

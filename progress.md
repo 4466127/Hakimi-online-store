@@ -3,6 +3,35 @@
 > این فایل می‌گوید **چه شد و چرا**. قدم بعدی در `todo.md`. اگر جلسه‌ی تازه شروع شد، اول `CLAUDE.md`، بعد این فایل و `todo.md` را بخوان.
 > آخرین به‌روزرسانی: ۲ قوس ۱۴۰۵ (۲۰۲۶-۱۱-۲۳)، پایان مرحله‌ی ۳ (گرفتن پول نقد با کد تحویل، رسید، نقش «پیک»)
 
+## ۳ قوس ۱۴۰۵ (۲۰۲۶-۱۱-۲۴) — پرداخت آنلاین حساب‌پی (مرحله‌ی ۵)
+
+- **منبع:**
+  - صاحب پروژه ۲۲ صفحه‌ی `docs.hesab.com` را چاپ کرد (`resources/hesabpay/`، در gitignore؛ متن آن‌ها با pdftotext خوانده شد).
+  - صفحه‌های خوانده‌شده:
+    - Overview، Payment Flow، Before You Start، Authentication، API Keys؛
+    - Create (a) Payment Session، Handle the Result؛
+    - Webhooks Overview، Verify Signatures، Event Payloads؛
+    - Check Transaction، Check and Refund، Refund، Errors؛
+    - Wallet / AfPay / International Cards، Website Domain Verification.
+  - Multi-Vendor و Encrypt PIN فقط عنوان دیده شد (ساخته نشد).
+- **ساخت:**
+  - `HesabPayGateway`: یک قلم با مبلغ نهایی، چون حساب‌پی فیلد تعداد ندارد و جمع باید دقیق باشد؛ `user_id` = uuid پرداخت.
+  - `OnlinePaymentService`، `OnlinePaymentController`، `HesabPayWebhookController`.
+  - `PaymentEvent` (مدل و منابع پنل)، فرمان زمان‌بندی‌شده‌ی `payments:cancel-unpaid-online`.
+  - `CheckoutService`: روش آنلاین ← پرداخت `pending` (نه `awaiting_collection`).
+  - صفحه‌ی تسویه: «به‌زودی» فقط وقتی روش آنلاین نیست.
+- **تصمیم‌ها:**
+  - **بازپرداخت API ساخته نشد**، چون رمز کیف‌پول می‌خواهد و فقط کامل است؛ فعلاً از داشبورد حساب‌پی.
+  - **Multi-Vendor ساخته نشد**؛ تسویه‌ی فروشنده دستی است.
+  - از `data.status` بررسی تراکنش «پرداخت‌شده» ساخته نمی‌شود (معنایش در مستندات نیست).
+  - لغو خودکار ۱۲۰ دقیقه: نشست ۱۵ دقیقه است و تکرار پیام‌ها تا حدود ۴۸ دقیقه طول می‌کشد.
+  - پول دیرآمده برای سفارش لغوشده یا نقدشده فقط «نیاز به بررسی» می‌شود.
+- **آزمون:**
+  - ۱۱ تست با `Http::fake`. کل: ۴۹۴ تست سبز.
+  - مرورگر واقعی: جعبه‌ی «منتظر پرداخت آنلاین» در موبایل بی سرریز؛ «نقد می‌دهم» کار کرد.
+  - **با حساب‌پی واقعی (sandbox) آزمایش نشده**، چون کلید و دسترسی پورتال هنوز نیست.
+- MySQL خاموش بود (XAMPP بسته شده بود)؛ برای تست دوباره روشن شد.
+
 ## ۳ قوس ۱۴۰۵ (۲۰۲۶-۱۱-۲۴) — تکمیل زیردسته‌ها و مشخصه‌ها
 
 - **بررسی:**

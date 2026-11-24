@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\ReceiptController;
+use App\Http\Controllers\HesabPayWebhookController;
 use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CategoryController;
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
 use App\Http\Controllers\Storefront\HomeController;
+use App\Http\Controllers\Storefront\OnlinePaymentController;
 use App\Http\Controllers\Storefront\OrderController;
 use App\Http\Controllers\Storefront\PageController;
 use App\Http\Controllers\Storefront\ProductController;
@@ -69,6 +71,15 @@ Route::post('/checkout/discount/remove', [CheckoutController::class, 'removeDisc
 // صفحه‌ی سفارش با uuid (حدس‌زدنی نیست) و پیگیری با شماره‌ی سفارش + موبایل
 Route::get('/order/{uuid}', [OrderController::class, 'show'])->whereUuid('uuid')->name('order.show');
 Route::get('/track', [OrderController::class, 'trackForm'])->name('order.track');
+
+// پرداخت آنلاین حساب‌پی (مرحله‌ی ۵). برگشت مرورگر هیچ وضعیتی را عوض نمی‌کند؛ فقط پیام امضاشده‌ی سرور.
+Route::middleware('throttle:online-payment')->group(function () {
+    Route::post('/order/{uuid}/pay', [OnlinePaymentController::class, 'pay'])->whereUuid('uuid')->name('order.pay');
+    Route::post('/order/{uuid}/pay/cash', [OnlinePaymentController::class, 'switchToCash'])->whereUuid('uuid')->name('order.pay.cash');
+});
+Route::get('/payment/hesabpay/{payment}/return', [OnlinePaymentController::class, 'returned'])->whereUuid('payment')->name('payment.hesabpay.return');
+Route::get('/payment/hesabpay/{payment}/failed', [OnlinePaymentController::class, 'failed'])->whereUuid('payment')->name('payment.hesabpay.failed');
+Route::post('/webhooks/hesabpay', HesabPayWebhookController::class)->middleware('throttle:payment-webhook')->name('webhooks.hesabpay');
 Route::post('/track', [OrderController::class, 'track'])->middleware('throttle:order-track')->name('order.track.submit');
 
 // دسته‌بندی اجناس
