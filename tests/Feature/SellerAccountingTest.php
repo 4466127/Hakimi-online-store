@@ -30,6 +30,7 @@ use App\Services\Orders\OrderStateMachine;
 use App\Services\Payments\CashCollection;
 use App\Services\Payments\CashCollectionService;
 use App\Services\Settings;
+use App\Support\Jalali;
 use App\Support\Money;
 use App\Support\Num;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -339,6 +340,27 @@ class SellerAccountingTest extends TestCase
 
         $this->travel(3)->days();
         $this->assertSame('1900.00', $this->ledger()->summary($seller)['eligible']);
+    }
+
+    public function test_settling_during_the_hold_days_says_the_exact_date(): void
+    {
+        app(Settings::class)->set('delivery.pickup_enabled', true);
+        app(Settings::class)->set('store.address', 'کابل، چهارراهی قمبر');
+        app(Settings::class)->set('marketplace.settlement_hold_days', 7);
+        $seller = $this->approvedSeller();
+        $this->collect($this->placeOrder([[$this->variant($seller, 5, '1000.00'), 1]], ['deliveryMethod' => 'pickup']));
+
+        try {
+            $this->ledger()->settle($seller, null, 'cash', $this->owner);
+            $this->fail('هنوز در روزهای انتظار است');
+        } catch (SettlementException $e) {
+            $this->assertSame('not_yet_eligible', $e->reason);
+            $this->assertStringContainsString(Jalali::dateTime(now()->addDays(7)), $e->userMessage());
+            $this->assertStringContainsString('۷ روز', $e->userMessage());
+        }
+
+        $this->travel(7)->days();
+        $this->assertSame('950.00', (string) $this->ledger()->settle($seller, null, 'cash', $this->owner)->amount);
     }
 
     // ───────────────────────── تسویه ─────────────────────────

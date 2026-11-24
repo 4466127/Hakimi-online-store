@@ -12,13 +12,14 @@ use RuntimeException;
  */
 class SettlementException extends RuntimeException
 {
-    public function __construct(public readonly string $reason)
+    /** @param  array<string, string>  $params  عددها/تاریخ‌های داخل پیام */
+    public function __construct(public readonly string $reason, public readonly array $params = [])
     {
         parent::__construct('settlement.'.$reason);
     }
 
     public function userMessage(): string
     {
-        return (string) __('commission.errors.'.$this->reason);
+        return (string) __('commission.errors.'.$this->reason, $this->params);
     }
 }

@@ -12,7 +12,9 @@ use App\Models\SellerTransaction;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\Settings;
+use App\Support\Jalali;
 use App\Support\Money;
+use App\Support\Num;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -178,6 +180,20 @@ class SellerLedger
 
             $eligible = $rows->reduce(fn (string $c, SellerTransaction $t) => Money::add($c, (string) $t->open_amount), '0.00');
             if (Money::compare($eligible, 0) <= 0) {
+                // اگر طلبی فقط منتظر «روزهای انتظار پیش از تسویه» است، تاریخ دقیقش را به مدیر بگو
+                $next = SellerTransaction::query()
+                    ->where('seller_id', $seller->id)
+                    ->pending()
+                    ->where('open_amount', '>', 0)
+                    ->whereNotNull('eligible_at')
+                    ->orderBy('eligible_at')
+                    ->first();
+                if ($next !== null) {
+                    throw new SettlementException('not_yet_eligible', [
+                        'date' => Jalali::dateTime($next->eligible_at),
+                        'days' => Num::toFa((string) $this->holdDays()),
+                    ]);
+                }
                 throw new SettlementException('nothing_eligible');
             }
 
