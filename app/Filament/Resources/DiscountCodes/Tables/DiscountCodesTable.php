@@ -48,6 +48,9 @@ class DiscountCodesTable
                     ->label(__('admin.discounts.first_order_short'))
                     ->boolean()
                     ->toggleable(),
+                IconColumn::make('show_on_site')
+                    ->label(__('admin.discounts.show_on_site_short'))
+                    ->boolean(),
                 TextColumn::make('status')
                     ->label(__('admin.discounts.status'))
                     ->badge()

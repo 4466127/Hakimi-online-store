@@ -294,7 +294,7 @@ Index: `product_id`، (`is_active`)، `barcode`.
 `id`، `promotion_id` FK، `target_type` VARCHAR(10)، `target_id` BIGINT. UNIQUE (`promotion_id`, `target_type`, `target_id`).
 
 #### `discount_codes` — کد تخفیف ✓ (۹-۳، `2026_11_23_000500`؛ نام طرح قبلی `coupons` بود)
-`id`، `code` VARCHAR(30) UNIQUE (یکسان‌شده: A-Z ۰-۹ - _)، `type` VARCHAR(10) (`percent`/`fixed`)، `value` DECIMAL(12,2)، `min_order_total` DECIMAL NULL (قیمت اجناس بی کرایه)، `max_discount` DECIMAL NULL (فقط درصدی)، `max_uses` UNSIGNED INT NULL، `max_uses_per_phone` UNSIGNED INT NULL، `first_order_only` BOOL، `used_count` UNSIGNED INT (فقط زیر قفل ردیف)، `starts_at`/`ends_at` NULL، `is_active`، `note`، `created_by` FK users NULL، timestamps. INDEX (`is_active`, `starts_at`, `ends_at`).
+`id`، `code` VARCHAR(30) UNIQUE (یکسان‌شده: A-Z ۰-۹ - _)، `type` VARCHAR(10) (`percent`/`fixed`)، `value` DECIMAL(12,2)، `min_order_total` DECIMAL NULL (قیمت اجناس بی کرایه)، `max_discount` DECIMAL NULL (فقط درصدی)، `max_uses` UNSIGNED INT NULL، `max_uses_per_phone` UNSIGNED INT NULL، `first_order_only` BOOL، `used_count` UNSIGNED INT (فقط زیر قفل ردیف)، `starts_at`/`ends_at` NULL، `is_active`، `show_on_site` BOOL (پیش‌فرض ۰)، `promo_title` JSON NULL (متن کوتاه کارت)، `note`، `created_by` FK users NULL، timestamps. INDEX (`is_active`, `starts_at`, `ends_at`)، (`show_on_site`, `is_active`). **«کد تخفیف در سایت»** (`2026_11_26_000200`): فقط یک کد در یک وقت در صفحه‌ی اصلی و تسویه نشان داده می‌شود (`DiscountCode::sitePromo()`: روشن، شروع‌شده، تمام‌نشده، ظرفیت پر نشده؛ آخرین تغییر).
 
 #### `discount_code_redemptions` ✓
 `id`، `discount_code_id` FK (restrict)، `order_id` FK **UNIQUE** (هر سفارش حداکثر یک بار)، `customer_id` FK NULL، `phone` VARCHAR(20) (موبایل یکسان‌شده‌ی خریدار)، `amount` DECIMAL(12,2) (تخفیف هنگام ثبت)، `returned_amount` DECIMAL(12,2) (سهم اجناس برگشتی، از روی سندهای برگشت)، `status` (`active`/`released`)، `released_at`، `release_reason`، timestamps. INDEX (`discount_code_id`, `phone`, `status`). حذف نمی‌شود (مدل رد می‌کند).
@@ -505,6 +505,9 @@ Index: (`status`,`placed_at`)، `customer_id`، `purchaser_phone`، `recipient_p
 
 #### `banners` ✓ (۹-۴، `2026_11_23_000600`؛ نسخه‌ی ساده)
 `id`، `title` JSON NULL (متن جایگزین عکس)، `image_path` (WebP، حداکثر ۱۶۰۰ پیکسل)، `link_url` VARCHAR(255) NULL (فقط `/…` یا `http(s)://…`)، `position` UNSIGNED INT، `is_active` BOOL، timestamps. INDEX (`is_active`, `position`). **حداکثر ۵ بنر روشن** (فورم + مدل). ستون‌های طرح قبلی (`subtitle`، `mobile_image_path`، `placement`، `starts_at/ends_at`، `clicks_count`) به خواست صاحب پروژه **بعداً**.
+
+#### `home_videos` ✓ (`2026_11_26_000300`؛ ۵ قوس ۱۴۰۵)
+`id`، `title` JSON، `video_path` (mp4/webm، حداکثر ۸ مگابایت، نام تصادفی در `public/videos`)، `poster_path` (WebP، حداکثر ۱۲۰۰ پیکسل)، `link_url` VARCHAR(255) NULL (فقط `/…` یا `http(s)://…`)، `product_ids` JSON NULL (حداکثر ۸ جنس، به ترتیب مدیر)، `position`، `is_active`، timestamps. INDEX (`is_active`, `position`). **حداکثر ۳ ویدیوی روشن** (فورم + مدل). فایل‌ها با حذف یا عوض کردن پاک می‌شوند.
 
 #### `home_sections` — بخش‌های صفحه‌ی اصلی (ترتیب و محتوا از پنل)
 `id`، `type` VARCHAR(30) (`categories`/`featured`/`new`/`bestsellers`/`promotion`/`category_products`/`custom_html`)، `title` JSON NULL، `config` JSON (مثلاً `category_id`، تعداد)، `position`، `is_active`، timestamps.

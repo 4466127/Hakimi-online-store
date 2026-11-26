@@ -18,9 +18,23 @@ use Illuminate\View\View;
  */
 class CategoryController extends Controller
 {
-    public function index(CategoryMenu $menu): View
+    /**
+     * همه‌ی دسته‌ها. در موبایل دو ستون مثل دیجی‌کالا: دسته‌های اصلی در نوار کنار، زیردسته‌های دسته‌ی انتخاب‌شده
+     * در کنارش. `?c=slug` دسته‌ی انتخاب‌شده است (بی جاوااسکریپت هم کار می‌کند؛ با Alpine بی بارگذاری دوباره).
+     */
+    public function index(Request $request, CategoryMenu $menu): View
     {
-        return view('storefront.categories.index', ['tree' => $menu->tree()]);
+        $tree = $menu->tree();
+        $wanted = (string) $request->query('c', '');
+        $selected = 0;
+        foreach ($tree as $i => $root) {
+            if ($root['slug'] === $wanted) {
+                $selected = $i;
+                break;
+            }
+        }
+
+        return view('storefront.categories.index', ['tree' => $tree, 'selected' => $selected]);
     }
 
     public function show(Request $request, string $slug, ProductCatalog $catalog): View

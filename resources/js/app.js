@@ -81,4 +81,154 @@ Alpine.data('productPicker', (cfg) => ({
     },
 }));
 
+/** عدد لاتین ← دری (۰-۹). */
+const faDigits = (value) => String(value).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
+/** «حرکت کمتر» در تنظیم دستگاه. */
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/*
+ | کارت «کد تخفیف در سایت» (۵ قوس ۱۴۰۵): کاپی کد و شمارش معکوس.
+ | cfg.remaining ثانیه‌های باقی‌مانده از سرور (یا null = بی تاریخ پایان). ساعت موبایل مشتری استفاده نمی‌شود؛
+ | فقط فاصله‌ی زمانی از باز شدن صفحه. با «حرکت کمتر» هر دقیقه یک بار به‌روز می‌شود و ثانیه دیده نمی‌شود.
+ */
+Alpine.data('sitePromo', (cfg) => ({
+    code: cfg.code,
+    left: cfg.remaining,
+    copied: false,
+    reduced: prefersReducedMotion(),
+    timer: null,
+
+    init() {
+        if (this.left === null) {
+            return;
+        }
+        const startedAt = performance.now();
+        const total = this.left;
+        const tick = () => { this.left = Math.max(0, Math.round(total - (performance.now() - startedAt) / 1000)); };
+        this.timer = setInterval(() => {
+            if (!document.hidden) { tick(); }
+            if (this.left === 0) { clearInterval(this.timer); }
+        }, this.reduced ? 60000 : 1000);
+        document.addEventListener('visibilitychange', tick);
+    },
+
+    destroy() { clearInterval(this.timer); },
+
+    parts() {
+        const t = Math.max(0, this.left ?? 0);
+        return { d: Math.floor(t / 86400), h: Math.floor((t % 86400) / 3600), m: Math.floor((t % 3600) / 60), s: t % 60 };
+    },
+    pad(n) { return String(n).padStart(2, '0'); },
+    fa(n) { return faDigits(n); },
+    label() {
+        const p = this.parts();
+        return faDigits(`${p.d}:${this.pad(p.h)}:${this.pad(p.m)}`);
+    },
+
+    /** کاپی؛ روی http (نه https) navigator.clipboard نیست، پس راه قدیمی هم امتحان می‌شود. */
+    async copy() {
+        let ok = false;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(this.code);
+                ok = true;
+            }
+        } catch (e) { ok = false; }
+        if (!ok) {
+            const input = document.createElement('input');
+            input.value = this.code;
+            input.setAttribute('readonly', '');
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            input.remove();
+        }
+        if (!ok) {
+            // آخرین راه: متن کد انتخاب می‌شود تا مشتری خودش کاپی کند
+            const range = document.createRange();
+            range.selectNodeContents(this.$refs.code);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        this.copied = ok;
+        if (ok) { setTimeout(() => { this.copied = false; }, 2500); }
+    },
+}));
+
+/*
+ | ویدیوی صفحه‌ی اصلی (۵ قوس ۱۴۰۵): بی صدا، فقط وقتی دست‌کم نیمش دیده می‌شود پخش می‌شود و بیرون از دید
+ | می‌ایستد. با «صرفه‌جویی داده»، انترنت 2G یا «حرکت کمتر» خودکار پخش نمی‌شود: فقط عکس با دکمه‌ی پخش.
+ | فایل ویدیو تا وقت پخش دانلود نمی‌شود (preload="none").
+ */
+Alpine.data('homeVideo', () => ({
+    playing: false,
+    muted: true,
+    manual: false,
+    observer: null,
+
+    init() {
+        const video = this.$refs.video;
+        video.muted = true;
+        const conn = navigator.connection || {};
+        const slow = conn.saveData || ['slow-2g', '2g'].includes(conn.effectiveType);
+        this.manual = slow || prefersReducedMotion();
+        video.addEventListener('play', () => { this.playing = true; });
+        video.addEventListener('pause', () => { this.playing = false; });
+        if (this.manual || !('IntersectionObserver' in window)) {
+            return;
+        }
+        this.observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !document.hidden) {
+                    video.play().catch(() => {});
+                } else {
+                    video.pause();
+                }
+            });
+        }, { threshold: [0, 0.5] });
+        this.observer.observe(video);
+    },
+
+    destroy() { this.observer?.disconnect(); },
+
+    toggle() {
+        const video = this.$refs.video;
+        if (video.paused) {
+            this.manual = true;   // مشتری خودش زد؛ دیگر خودکار نمی‌ایستد/پخش نمی‌شود
+            this.observer?.disconnect();
+            video.play().catch(() => {});
+        } else {
+            this.manual = true;
+            this.observer?.disconnect();
+            video.pause();
+        }
+    },
+
+    toggleMute() {
+        this.muted = !this.muted;
+        this.$refs.video.muted = this.muted;
+    },
+}));
+
+/*
+ | پیام کوچک بالای نوار پایین (کد تخفیف سایت): با «×» بسته می‌شود و برای همان کد دیگر نشان داده نمی‌شود.
+ | localStorage ممکن است بسته باشد (حالت خصوصی)؛ آن وقت فقط تا بستن صفحه.
+ */
+Alpine.data('dismissible', (key) => ({
+    open: false,
+    init() {
+        let closed = false;
+        try { closed = window.localStorage.getItem(key) === '1'; } catch (e) { closed = false; }
+        this.open = !closed;
+    },
+    close() {
+        this.open = false;
+        try { window.localStorage.setItem(key, '1'); } catch (e) { /* بی اثر */ }
+    },
+}));
+
 Alpine.start();

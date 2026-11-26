@@ -81,13 +81,21 @@ class OrderController extends Controller
         /** @var Customer $customer */
         $customer = $request->user('customer');
 
+        // ?status=current|delivered|returned|cancelled (برگه‌های بالای لیست؛ هر مقدار دیگر = همه)
+        $group = (string) $request->query('status', '');
+        $group = array_key_exists($group, Order::CUSTOMER_GROUPS) ? $group : null;
+
         return view('storefront.orders.mine', [
             'customer' => $customer,
+            'group' => $group,
+            'groupCounts' => AccountController::groupCounts($customer),
             'orders' => Order::query()
                 ->where('customer_id', $customer->id)
+                ->when($group !== null, fn ($q) => $q->whereIn('status', Order::CUSTOMER_GROUPS[$group]))
                 ->withCount('items')
                 ->orderByDesc('id')
-                ->paginate(10),
+                ->paginate(10)
+                ->withQueryString(),
         ]);
     }
 }

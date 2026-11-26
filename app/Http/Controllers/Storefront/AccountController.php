@@ -29,7 +29,26 @@ class AccountController extends Controller
             'customer' => $customer,
             'seller' => $customer->seller,
             'orders' => Order::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(3)->get(),
+            'groupCounts' => self::groupCounts($customer),
         ]);
+    }
+
+    /**
+     * شمار سفارش‌های مشتری در هر گروه «سفارش‌های من» (جاری، تحویل‌شده، برگشت‌شده، لغوشده).
+     *
+     * @return array<string, int>
+     */
+    public static function groupCounts(Customer $customer): array
+    {
+        $byStatus = Order::query()->where('customer_id', $customer->id)
+            ->selectRaw('status, COUNT(*) as n')->groupBy('status')->pluck('n', 'status');
+
+        $counts = [];
+        foreach (Order::CUSTOMER_GROUPS as $group => $statuses) {
+            $counts[$group] = (int) collect($statuses)->sum(fn (string $s): int => (int) ($byStatus[$s] ?? 0));
+        }
+
+        return $counts;
     }
 
     public function updateProfile(Request $request): RedirectResponse

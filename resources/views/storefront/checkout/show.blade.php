@@ -449,6 +449,18 @@
                             <p class="mt-1.5 text-sm text-red-700" role="alert">{{ $discountError }}</p>
                         @endif
                         <p id="discount_code_help" class="mt-1.5 text-xs text-gray-500">{{ __('checkout.discount.phone_note') }}</p>
+                        {{-- کد تخفیف سایت: یک دکمه که همان کد را اعمال می‌کند (دکمه بعد از خانه‌ی متن است، پس مقدارش برنده است) --}}
+                        @if ($sitePromo ?? null)
+                            <div class="mt-3 flex items-center gap-3 rounded-xl border border-dashed border-accent-400 bg-accent-50 px-3 py-2">
+                                @svg('heroicon-o-ticket', 'size-6 shrink-0 text-accent-600')
+                                <div class="min-w-0 flex-1 text-sm">
+                                    <p class="font-medium text-gray-900">{{ $sitePromo->tr('promo_title') ?: __('store.promo.default_title') }}</p>
+                                    <p class="text-xs text-gray-600">{{ __('store.promo.code_is') }} <span class="font-bold tracking-wider" dir="ltr">{{ $sitePromo->code }}</span></p>
+                                </div>
+                                <button type="submit" name="discount_code" value="{{ $sitePromo->code }}" formaction="{{ route('checkout.discount.apply') }}" formnovalidate
+                                        class="btn btn-accent min-h-10 shrink-0 px-3 text-sm">{{ __('store.promo.use_now') }}</button>
+                            </div>
+                        @endif
                     @endif
                 </div>
 

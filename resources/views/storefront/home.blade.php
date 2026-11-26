@@ -101,6 +101,11 @@
         </section>
     @endif
 
+    {{-- کد تخفیف سایت (۵ قوس ۱۴۰۵): کاپی و شمارش معکوس --}}
+    @if ($promo ?? null)
+        @include('storefront.partials.site-promo', ['promo' => $promo])
+    @endif
+
     {{-- معرفی --}}
     <section class="bg-gradient-to-b from-brand-50 to-gray-50">
         <div class="container-page py-6 text-center md:py-16">
@@ -177,8 +182,36 @@
         </section>
     @endif
 
-    {{-- پیشنهاد ویژه و تازه‌ترین اجناس (فقط وقتی جنس فعال هست) --}}
-    @foreach ([['items' => $featured, 'heading' => 'store.home.featured_heading'], ['items' => $latest, 'heading' => 'store.home.latest_heading']] as $row)
+    {{-- ویدیوهای اجناس (۵ قوس ۱۴۰۵؛ حداکثر ۳) --}}
+    @foreach ($videos ?? [] as $video)
+        @include('storefront.partials.home-video', ['video' => $video])
+    @endforeach
+
+    {{-- پیشنهاد ویژه: نوار رنگی با ردیف افقی در موبایل (الگو: «پیشنهاد شگفت‌انگیز» دیجی‌کالا، بی شمارش معکوس) --}}
+    @if ($featured->isNotEmpty())
+        <section class="mt-8 md:mx-auto md:max-w-6xl md:px-4" aria-labelledby="featured-heading">
+            <div class="bg-navy-800 py-4 md:rounded-2xl md:px-4 md:py-5">
+            <div class="flex items-center justify-between gap-3 px-4 md:px-0">
+                <h2 id="featured-heading" class="flex items-center gap-2 text-lg font-bold text-white">
+                    <span class="flex size-9 items-center justify-center rounded-lg bg-accent-500 text-white">@svg('heroicon-s-receipt-percent', 'size-5')</span>
+                    {{ __('store.home.featured_heading') }}
+                </h2>
+                <a href="{{ route('search') }}" class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-white">
+                    {{ __('store.home.see_all') }} @svg('heroicon-m-chevron-left', 'size-4 ltr:rotate-180')
+                </a>
+            </div>
+            {{-- ردیف افقی در همه‌ی اندازه‌ها (با انگشت یا اسکرول)؛ هیچ کارتی تنها در ردیف دوم نمی‌ماند --}}
+            <ul class="mt-3 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:px-0 [&::-webkit-scrollbar]:hidden">
+                @foreach ($featured as $product)
+                    <li class="w-40 shrink-0 snap-start md:w-52"><x-storefront.product-card :product="$product" /></li>
+                @endforeach
+            </ul>
+            </div>
+        </section>
+    @endif
+
+    {{-- تازه‌ترین اجناس (فقط وقتی جنس فعال هست) --}}
+    @foreach ([['items' => $latest, 'heading' => 'store.home.latest_heading']] as $row)
         @if ($row['items']->isNotEmpty())
             <section class="container-page mt-8">
                 <div class="mb-4 flex items-center justify-between gap-3">

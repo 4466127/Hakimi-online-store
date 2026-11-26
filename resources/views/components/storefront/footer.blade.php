@@ -2,7 +2,7 @@
 @props(['store'])
 @php $pages = $store->footerPages(); @endphp
 
-<footer class="border-t border-gray-200 bg-white pb-20 md:pb-0">
+<footer class="border-t border-gray-200 bg-white pb-28 md:pb-0">
     <div class="container-page grid gap-8 py-10 md:grid-cols-3">
         <section>
             <h2 class="mb-3">

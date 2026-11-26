@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Storefront\CheckoutRequest;
 use App\Models\Customer;
+use App\Models\DiscountCode;
 use App\Services\Cart\CartService;
 use App\Services\Marketing\DiscountCodeException;
 use App\Services\Marketing\DiscountCodeService;
@@ -67,6 +68,9 @@ class CheckoutController extends Controller
                 $data['discountError'] = $e->userMessage();
             }
         }
+
+        // «کد تخفیف در سایت»: اگر مشتری هنوز کدی نزده، همان کد با یک دکمه پیشنهاد می‌شود
+        $data['sitePromo'] = $data['discount'] === null ? DiscountCode::sitePromo() : null;
 
         return view('storefront.checkout.show', $data);
     }

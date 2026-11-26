@@ -104,6 +104,22 @@ class DiscountCodeForm
                             ->helperText(__('admin.discounts.is_active_help'))
                             ->default(true),
                     ]),
+                // «کد تخفیف در سایت» (۵ قوس ۱۴۰۵؛ الگو: جاکدی دیجی‌کالا، بی بازی و قرعه)
+                Section::make(__('admin.discounts.section_site'))
+                    ->description(__('admin.discounts.section_site_help'))
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make('show_on_site')
+                            ->label(__('admin.discounts.show_on_site'))
+                            ->helperText(__('admin.discounts.show_on_site_help'))
+                            ->live(),
+                        TextInput::make('promo_title.fa')
+                            ->label(__('admin.discounts.promo_title'))
+                            ->placeholder(__('admin.discounts.promo_title_placeholder'))
+                            ->helperText(__('admin.discounts.promo_title_help'))
+                            ->maxLength(80)
+                            ->required(fn (Get $get): bool => (bool) $get('show_on_site')),
+                    ]),
             ]);
     }
 

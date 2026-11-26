@@ -33,7 +33,20 @@
 
             <x-storefront.flash />
 
-            @if ($orders->isEmpty())
+            {{-- برگه‌های گروه (جاری، تحویل‌شده، برگشت‌شده، لغوشده) با شمار --}}
+            <div class="card mb-4 p-3">
+                <x-storefront.order-tiles :counts="$groupCounts" :active="$group" />
+                @if ($group)
+                    <p class="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-2 text-sm text-gray-600">
+                        <span>{{ __('customer.account.groups_showing', ['group' => __('customer.account.groups.'.$group)]) }}</span>
+                        <a href="{{ route('account.orders') }}" class="inline-flex min-h-10 items-center font-medium text-sky-700">{{ __('customer.account.groups_all') }}</a>
+                    </p>
+                @endif
+            </div>
+
+            @if ($orders->isEmpty() && $group)
+                <p class="card p-6 text-center text-sm text-gray-500">{{ __('customer.account.groups_empty') }}</p>
+            @elseif ($orders->isEmpty())
                 <div class="card p-8 text-center">
                     @svg('heroicon-o-shopping-bag', 'mx-auto size-14 text-gray-300')
                     <h2 class="mt-3 font-bold text-gray-900">{{ __('checkout.mine.empty_heading') }}</h2>

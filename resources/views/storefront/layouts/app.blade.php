@@ -61,6 +61,7 @@
     </main>
 
     <x-storefront.footer :store="$store" />
+    <x-storefront.mobile-extras />
     <x-storefront.bottom-nav />
 
     @stack('scripts')

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTranslations;
 use App\Models\Concerns\LogsActivity;
 use App\Support\Num;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -24,10 +26,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $first_order_only
  * @property int $used_count
  * @property bool $is_active
+ * @property bool $show_on_site
+ * @property array<string, string>|null $promo_title
  */
 class DiscountCode extends Model
 {
-    use LogsActivity;
+    use HasTranslations, LogsActivity;
 
     public const TYPE_PERCENT = 'percent';
 
@@ -38,7 +42,7 @@ class DiscountCode extends Model
     /** used_count فقط از DiscountCodeService و زیر قفل عوض می‌شود. */
     protected $fillable = [
         'code', 'type', 'value', 'min_order_total', 'max_discount', 'max_uses', 'max_uses_per_phone',
-        'first_order_only', 'starts_at', 'ends_at', 'is_active', 'note', 'created_by',
+        'first_order_only', 'starts_at', 'ends_at', 'is_active', 'show_on_site', 'promo_title', 'note', 'created_by',
     ];
 
     protected function casts(): array
@@ -54,6 +58,8 @@ class DiscountCode extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'is_active' => 'boolean',
+            'show_on_site' => 'boolean',
+            'promo_title' => 'array',
         ];
     }
 
@@ -70,6 +76,29 @@ class DiscountCode extends Model
     public function setCodeAttribute(?string $value): void
     {
         $this->attributes['code'] = self::normaliseCode($value);
+    }
+
+    /**
+     * کدی که در سایت نشان داده می‌شود (کارت صفحه‌ی اصلی و پیشنهاد صفحه‌ی تسویه): روشن، «نمایش در سایت»،
+     * شروع‌شده، تمام‌نشده و سقفش پر نشده. اگر چند کد بود، تازه‌ترین تغییر.
+     */
+    public function scopeShownOnSite(Builder $query): Builder
+    {
+        $now = now();
+
+        return $query->where('is_active', true)
+            ->where('show_on_site', true)
+            ->where(fn (Builder $q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
+            ->where(fn (Builder $q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', $now))
+            ->where(fn (Builder $q) => $q->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses'))
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
+    }
+
+    /** کد امروزِ سایت یا null. */
+    public static function sitePromo(): ?self
+    {
+        return self::query()->shownOnSite()->first();
     }
 
     public function redemptions(): HasMany

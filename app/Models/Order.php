@@ -72,6 +72,18 @@ class Order extends Model
     ];
 
     /** @var list<string> وضعیت پرداخت */
+    /**
+     * گروه‌های «سفارش‌های من» برای مشتری (مثل دیجی‌کالا: جاری، تحویل‌شده، برگشت‌شده؛ لغوشده هم).
+     *
+     * @var array<string, list<string>>
+     */
+    public const CUSTOMER_GROUPS = [
+        'current' => ['pending', 'confirmed', 'processing', 'shipped'],
+        'delivered' => ['delivered'],
+        'returned' => ['returned'],
+        'cancelled' => ['cancelled'],
+    ];
+
     public const PAYMENT_STATUSES = ['unpaid', 'awaiting_collection', 'pending', 'partially_paid', 'paid', 'failed', 'partially_refunded', 'refunded'];
 
     /** شکل قدیمی شماره (سفارش‌های پیش از ۲ قوس ۱۴۰۵): HS-000123. */

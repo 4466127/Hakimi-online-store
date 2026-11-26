@@ -1,106 +1,133 @@
-{{-- حساب کاربری مشتری: خلاصه، فروشندگی، ویرایش معلومات، تغییر رمز. --}}
+{{--
+    حساب کاربری مشتری.
+    موبایل (الگو: پروفایل دیجی‌کالا، ۵ قوس ۱۴۰۵): نام و شماره ← خانه‌های «سفارش‌های من» با شمار ← لیست منو با
+    فلش ← فروشندگی ← سه سفارش آخر ← معلومات و رمز.
+    کمپیوتر: ستون کنار (نام و منو) و متن اصلی. ترتیب موبایل با order-* (والد flex)، کمپیوتر با grid.
+--}}
 @extends('storefront.layouts.app')
 
 @section('title', __('customer.account.title'))
 @push('head')<meta name="robots" content="noindex">@endpush
 
 @section('content')
-    <div class="container-page py-6 md:py-10">
-        <div class="grid gap-6 md:grid-cols-[16rem_1fr]">
-            {{-- کنار: نام و منوی حساب --}}
-            <aside class="card h-fit p-5">
-                <div class="flex items-center gap-3">
-                    <span class="flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-700">
-                        @svg('heroicon-o-user', 'size-6')
-                    </span>
-                    <div class="min-w-0">
-                        <p class="truncate font-bold text-gray-900">{{ $customer->name }}</p>
-                        <p class="text-sm text-gray-500" dir="ltr">{{ \App\Support\Phone::display($customer->phone) }}</p>
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-gray-500">
-                    {{ __('customer.account.member_since', ['date' => \App\Support\Jalali::date($customer->created_at)]) }}
-                </p>
+    @php
+        $supportLink = $store->whatsappLink() ?? $store->telLink();
+        $menu = [
+            ['href' => route('account.orders'), 'icon' => 'heroicon-o-shopping-bag', 'label' => __('customer.account.menu.orders')],
+            ['href' => route('order.track'), 'icon' => 'heroicon-o-magnifying-glass', 'label' => __('checkout.track.title')],
+            ['href' => '#profile', 'icon' => 'heroicon-o-user-circle', 'label' => __('customer.account.profile')],
+            ['href' => '#password', 'icon' => 'heroicon-o-lock-closed', 'label' => __('customer.account.password')],
+            ['href' => $seller ? route('seller.onboarding') : route('seller.landing'), 'icon' => 'heroicon-o-building-storefront', 'label' => __('customer.account.menu.seller')],
+        ];
+        if ($supportLink) {
+            $menu[] = ['href' => $supportLink, 'icon' => 'heroicon-o-chat-bubble-left-right', 'label' => __('store.support.menu'), 'external' => str_starts_with($supportLink, 'http')];
+        }
+    @endphp
 
-                <nav class="mt-4 border-t border-gray-100 pt-3 text-sm" aria-label="{{ __('customer.account.title') }}">
-                    <ul class="space-y-1">
+    <div class="container-page py-4 md:py-10">
+        <div class="flex flex-col gap-4 md:grid md:grid-cols-[16rem_1fr] md:items-start md:gap-6">
+            {{-- ستون کنار (در موبایل بچه‌هایش با order در جای خود می‌نشینند) --}}
+            <aside class="contents md:block md:space-y-4">
+                {{-- ۱. نام و شماره --}}
+                <div class="card order-1 p-5 md:order-none">
+                    <div class="flex items-center gap-3">
+                        <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                            @svg('heroicon-o-user', 'size-6')
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-bold text-gray-900">{{ $customer->name }}</p>
+                            <p class="text-sm text-gray-500" dir="ltr">{{ \App\Support\Phone::display($customer->phone) }}</p>
+                        </div>
+                        <a href="#profile" class="flex size-11 shrink-0 items-center justify-center rounded-full text-sky-700 hover:bg-sky-50"
+                           aria-label="{{ __('customer.account.edit_profile') }}">
+                            @svg('heroicon-o-pencil', 'size-5')
+                        </a>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">
+                        {{ __('customer.account.member_since', ['date' => \App\Support\Jalali::date($customer->created_at)]) }}
+                    </p>
+                </div>
+
+                {{-- ۳. منو (لیست با فلش، مثل دیجی‌کالا) --}}
+                <nav class="card order-3 overflow-hidden md:order-none" aria-label="{{ __('customer.account.title') }}">
+                    <ul class="divide-y divide-gray-100 text-sm">
+                        @foreach ($menu as $item)
+                            <li>
+                                <a href="{{ $item['href'] }}" @if ($item['external'] ?? false) target="_blank" rel="noopener" @endif
+                                   class="flex min-h-14 items-center gap-3 px-4 text-gray-800 hover:bg-gray-50">
+                                    @svg($item['icon'], 'size-6 shrink-0 text-gray-500')
+                                    <span class="flex-1">{{ $item['label'] }}</span>
+                                    @svg('heroicon-m-chevron-left', 'size-5 text-gray-400 ltr:rotate-180')
+                                </a>
+                            </li>
+                        @endforeach
                         <li>
-                            <a href="{{ route('account') }}" aria-current="page" class="flex min-h-11 items-center gap-2 rounded-lg bg-brand-50 px-3 font-medium text-brand-800">
-                                @svg('heroicon-o-user-circle', 'size-5') {{ __('customer.account.menu.overview') }}
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('account.orders') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
-                                @svg('heroicon-o-shopping-bag', 'size-5') {{ __('customer.account.menu.orders') }}
-                            </a>
-                        </li>
-                        <li>
-                            <span class="flex min-h-11 items-center gap-2 px-3 text-gray-400" aria-disabled="true">
-                                @svg('heroicon-o-map-pin', 'size-5') {{ __('customer.account.menu.addresses') }}
-                                <span class="ms-auto rounded-full bg-gray-100 px-2 text-xs">{{ __('customer.account.soon') }}</span>
+                            <span class="flex min-h-14 items-center gap-3 px-4 text-gray-400" aria-disabled="true">
+                                @svg('heroicon-o-map-pin', 'size-6 shrink-0')
+                                <span class="flex-1">{{ __('customer.account.menu.addresses') }}</span>
+                                <span class="rounded-full bg-gray-100 px-2 text-xs">{{ __('customer.account.soon') }}</span>
                             </span>
                         </li>
                         <li>
-                            <a href="{{ route('order.track') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
-                                @svg('heroicon-o-magnifying-glass', 'size-5') {{ __('checkout.track.title') }}
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ $seller ? route('seller.onboarding') : route('seller.landing') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 text-gray-700 hover:bg-gray-50">
-                                @svg('heroicon-o-building-storefront', 'size-5') {{ __('customer.account.menu.seller') }}
-                            </a>
+                            <form method="post" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex min-h-14 w-full items-center gap-3 px-4 text-red-700 hover:bg-red-50">
+                                    @svg('heroicon-o-arrow-right-on-rectangle', 'size-6 shrink-0')
+                                    <span class="flex-1 text-start">{{ __('customer.account.logout') }}</span>
+                                </button>
+                            </form>
                         </li>
                     </ul>
                 </nav>
-
-                <form method="post" action="{{ route('logout') }}" class="mt-3 border-t border-gray-100 pt-3">
-                    @csrf
-                    <button type="submit" class="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm text-red-700 hover:bg-red-50">
-                        @svg('heroicon-o-arrow-right-on-rectangle', 'size-5') {{ __('customer.account.logout') }}
-                    </button>
-                </form>
             </aside>
 
-            <div class="min-w-0 space-y-6">
-                <x-storefront.flash />
+            <div class="contents md:block md:min-w-0 md:space-y-6">
+                <div class="order-first md:order-none">
+                    <x-storefront.flash />
+                </div>
 
-                <h1 class="text-xl font-bold text-gray-900">{{ __('customer.account.hello', ['name' => $customer->name]) }}</h1>
+                <h1 class="sr-only md:not-sr-only md:text-xl md:font-bold md:text-gray-900">{{ __('customer.account.hello', ['name' => $customer->name]) }}</h1>
 
-                {{-- فروشندگی --}}
-                @if ($seller)
-                    <a href="{{ route('seller.onboarding') }}" class="card flex items-center gap-4 p-5 hover:shadow-md">
-                        @svg('heroicon-o-building-storefront', 'size-8 shrink-0 text-accent-600')
-                        <div class="flex-1">
-                            <p class="font-bold text-gray-900">{{ $seller->store_name ?: __('customer.account.menu.seller') }}</p>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('customer.account.seller_status', ['status' => $seller->status->label()]) }}</p>
-                        </div>
-                        <span class="text-sm font-medium text-brand-700">{{ __('customer.account.seller_open') }}</span>
-                    </a>
-                @else
-                    <div class="flex flex-col items-start gap-4 rounded-2xl bg-navy-800 p-5 text-white sm:flex-row sm:items-center">
-                        @svg('heroicon-o-building-storefront', 'size-8 shrink-0 text-accent-400')
-                        <div class="flex-1">
-                            <p class="font-bold">{{ __('customer.account.seller_cta_title') }}</p>
-                            <p class="mt-1 text-sm text-white/80">{{ __('customer.account.seller_cta_text') }}</p>
-                        </div>
-                        <a href="{{ route('seller.landing') }}" class="btn btn-accent">{{ __('customer.account.seller_cta_button') }}</a>
+                {{-- ۲. سفارش‌های من: چهار خانه با شمار --}}
+                <section class="card order-2 p-4 md:order-none md:p-5">
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h2 class="border-b-2 border-red-500 pb-1 font-bold text-gray-900">{{ __('customer.account.menu.orders') }}</h2>
+                        <a href="{{ route('account.orders') }}" class="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-sky-700">
+                            {{ __('store.home.see_all') }} @svg('heroicon-m-chevron-left', 'size-4 ltr:rotate-180')
+                        </a>
                     </div>
-                @endif
+                    <x-storefront.order-tiles :counts="$groupCounts" />
+                </section>
 
-                {{-- سه سفارش آخر --}}
-                <section class="card p-5">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h2 class="flex items-center gap-2 font-bold text-gray-900">
-                            @svg('heroicon-o-shopping-bag', 'size-5 text-gray-400') {{ __('customer.account.menu.orders') }}
-                        </h2>
-                        @if ($orders->isNotEmpty())
-                            <a href="{{ route('account.orders') }}" class="text-sm font-medium text-brand-700 hover:underline">{{ __('checkout.mine.view') }}</a>
-                        @endif
-                    </div>
-
-                    @if ($orders->isEmpty())
-                        <p class="mt-2 text-sm leading-7 text-gray-500">{{ __('checkout.mine.empty_text') }}</p>
+                {{-- ۴. فروشندگی --}}
+                <div class="order-4 md:order-none">
+                    @if ($seller)
+                        <a href="{{ route('seller.onboarding') }}" class="card flex items-center gap-4 p-5 hover:shadow-md">
+                            @svg('heroicon-o-building-storefront', 'size-8 shrink-0 text-accent-600')
+                            <div class="flex-1">
+                                <p class="font-bold text-gray-900">{{ $seller->store_name ?: __('customer.account.menu.seller') }}</p>
+                                <p class="mt-1 text-sm text-gray-600">{{ __('customer.account.seller_status', ['status' => $seller->status->label()]) }}</p>
+                            </div>
+                            <span class="text-sm font-medium text-brand-700">{{ __('customer.account.seller_open') }}</span>
+                        </a>
                     @else
+                        <div class="flex flex-col items-start gap-4 rounded-2xl bg-navy-800 p-5 text-white sm:flex-row sm:items-center">
+                            @svg('heroicon-o-building-storefront', 'size-8 shrink-0 text-accent-400')
+                            <div class="flex-1">
+                                <p class="font-bold">{{ __('customer.account.seller_cta_title') }}</p>
+                                <p class="mt-1 text-sm text-white/80">{{ __('customer.account.seller_cta_text') }}</p>
+                            </div>
+                            <a href="{{ route('seller.landing') }}" class="btn btn-accent">{{ __('customer.account.seller_cta_button') }}</a>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- ۵. سه سفارش آخر --}}
+                @if ($orders->isNotEmpty())
+                    <section class="card order-5 p-5 md:order-none">
+                        <h2 class="flex items-center gap-2 font-bold text-gray-900">
+                            @svg('heroicon-o-clock', 'size-5 text-gray-400') {{ __('customer.account.recent_orders') }}
+                        </h2>
                         <ul class="mt-3 divide-y divide-gray-100 text-sm">
                             @foreach ($orders as $order)
                                 <li class="flex flex-wrap items-center justify-between gap-3 py-2.5">
@@ -111,11 +138,11 @@
                                 </li>
                             @endforeach
                         </ul>
-                    @endif
-                </section>
+                    </section>
+                @endif
 
-                {{-- معلومات من --}}
-                <section class="card p-5 md:p-6">
+                {{-- ۶. معلومات من --}}
+                <section id="profile" class="card order-6 scroll-mt-28 p-5 md:order-none md:p-6">
                     <h2 class="font-bold text-gray-900">{{ __('customer.account.profile') }}</h2>
                     <form method="post" action="{{ route('account.profile') }}" class="mt-4 grid gap-4 sm:grid-cols-2" novalidate>
                         @csrf
@@ -133,8 +160,8 @@
                     </form>
                 </section>
 
-                {{-- تغییر رمز --}}
-                <section class="card p-5 md:p-6">
+                {{-- ۷. تغییر رمز --}}
+                <section id="password" class="card order-7 scroll-mt-28 p-5 md:order-none md:p-6">
                     <h2 class="font-bold text-gray-900">{{ __('customer.account.password') }}</h2>
                     <form method="post" action="{{ route('account.password') }}" class="mt-4 grid gap-4 sm:grid-cols-3" novalidate>
                         @csrf
