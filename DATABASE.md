@@ -59,6 +59,8 @@ erDiagram
 | is_active | BOOL | |
 | failed_logins, locked_until | SMALLINT, DATETIME NULL | قفل ۱۵ دقیقه‌ای بعد از ۱۰ رمز اشتباه |
 | password_changed_at | DATETIME NULL | خالی = رمز را کس دیگری داده؛ کاربر در اولین ورود باید رمز خودش را بگذارد |
+| app_authentication_secret | TEXT NULL | ورود دومرحله‌ای: کلید برنامه‌ی کد، **رمزنگاری‌شده** با `APP_KEY` (`2026_11_26_000100`) |
+| app_authentication_recovery_codes | TEXT NULL | ۸ کد پشتیبان (hash، داخل JSON رمزنگاری‌شده) |
 | last_login_at | DATETIME NULL | |
 | remember_token | VARCHAR(100) NULL | |
 | timestamps | | |

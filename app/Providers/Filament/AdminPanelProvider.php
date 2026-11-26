@@ -10,6 +10,7 @@ use App\Filament\Support\LocalAvatarProvider;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Services\Settings;
 use App\Services\StoreInfo;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -42,6 +43,13 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->profile(EditProfile::class, isSimple: false)
+            // ورود دومرحله‌ای با برنامه‌ی کد (Google Authenticator، Microsoft Authenticator…)؛ از «حساب من» روشن می‌شود.
+            // ۸ کد پشتیبان یک‌بارمصرف برای وقتی که موبایل گم شد. ADMIN_MFA_REQUIRED=true همه را مجبور می‌کند (پیشنهاد برای سرور).
+            ->multiFactorAuthentication([
+                // نام فروشگاه در برنامه‌ی کد از brandName پنل گرفته می‌شود
+                AppAuthentication::make()->recoverable(),
+            ])
+            ->requiresMultiFactorAuthentication((bool) config('store.security.admin_mfa_required', false))
             ->brandName(fn (): string => (string) app(Settings::class)->get('store.name'))
             // لوگوی بازارک (WebP)؛ اگر مدیر لوگوی دیگری گذاشته باشد همان
             ->brandLogo(fn (): string => app(StoreInfo::class)->logoUrl())

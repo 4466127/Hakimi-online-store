@@ -39,6 +39,10 @@ return [
         // اگر خالی بود از روی env: sandbox → api-sandbox.hesab.com، production → api.hesab.com
         'api_url' => env('HESABPAY_API_URL'),
         'timeout' => (int) env('HESABPAY_TIMEOUT', 20),
+        // نام سایت صفحه‌ی پرداخت حساب‌پی (مستندات فقط مثال checkout.example را می‌دهد). با کلید sandbox نام واقعی
+        // دیده و این‌جا نوشته می‌شود (با کامه، مثلاً checkout.hesab.com). بعد از آن مشتری فقط به همین سایت‌ها
+        // فرستاده می‌شود و CSP هم فقط همین‌ها را می‌پذیرد. خالی: هر آدرس https (پیش از دیدن نام واقعی).
+        'checkout_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('HESABPAY_CHECKOUT_HOSTS', ''))))),
     ],
 
     'slack' => [

@@ -90,6 +90,16 @@ class HesabPayGateway implements PaymentGateway
             throw new PaymentException($response->status() === 403 ? 'gateway_domain_not_verified' : 'gateway_error');
         }
 
+        // مشتری فقط به صفحه‌ی امن (https) حساب‌پی فرستاده شود؛ اگر نام سایت پرداخت در .env آمده، فقط همان
+        if (! $this->isAllowedCheckoutUrl($data['url'])) {
+            Log::warning('payment.hesabpay.unexpected_checkout_url', [
+                'order' => $order->number,
+                'host' => mb_substr((string) parse_url($data['url'], PHP_URL_HOST), 0, 100),
+            ]);
+
+            throw new PaymentException('gateway_error');
+        }
+
         $expires = null;
         try {
             $expires = isset($data['expires_at']) ? CarbonImmutable::parse((string) $data['expires_at']) : null;
@@ -98,6 +108,34 @@ class HesabPayGateway implements PaymentGateway
         }
 
         return new GatewayStart($data['url'], $data['session_id'], $expires ?? CarbonImmutable::now()->addMinutes(15));
+    }
+
+    /**
+     * آدرس صفحه‌ی پرداخت: فقط https، بی نام کاربری و رمز در آدرس، و اگر HESABPAY_CHECKOUT_HOSTS پر است
+     * نام سایت باید دقیقاً یکی از آن‌ها یا زیردامنه‌ی یکی از آن‌ها باشد (جلوی فرستادن مشتری به سایت جعلی).
+     */
+    public static function isAllowedCheckoutUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (! is_array($parts) || strtolower($parts['scheme'] ?? '') !== 'https' || empty($parts['host'])
+            || isset($parts['user']) || isset($parts['pass'])) {
+            return false;
+        }
+
+        $allowed = (array) config('services.hesabpay.checkout_hosts', []);
+        if ($allowed === []) {
+            return true;
+        }
+
+        $host = strtolower($parts['host']);
+        foreach ($allowed as $candidate) {
+            $candidate = strtolower(ltrim((string) $candidate, '.'));
+            if ($candidate !== '' && ($host === $candidate || str_ends_with($host, '.'.$candidate))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

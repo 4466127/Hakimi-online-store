@@ -38,3 +38,6 @@ Thumbs.db
 
 # پی‌دی‌اف‌های مستندات حساب‌پی (چاپ از سایت؛ فقط روی لپتاپ)
 /resources/hesabpay/
+
+# فیلم‌ها و ایدیت ویدیوی معرفی (خصوصی؛ به GitHub نمی‌رود)
+/resources/AI video Editor/

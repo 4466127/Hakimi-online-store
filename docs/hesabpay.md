@@ -70,5 +70,6 @@
 ## ۵. روی سرور (یادآوری برای راه‌اندازی)
 
 - `.env`: `HESABPAY_ENV=production`، `HESABPAY_API_KEY=…`، `APP_URL=https://…`.
+- `HESABPAY_CHECKOUT_HOSTS`: نام سایت صفحه‌ی پرداخت حساب‌پی (مستندات فقط `checkout.example` می‌گوید). در اولین آزمایش sandbox آدرسی را که مشتری به آن فرستاده می‌شود ببینید و نامش را این‌جا بنویسید (مثلاً `checkout.hesab.com`). بعد از آن مشتری فقط به همین سایت فرستاده می‌شود و CSP هم فقط همین را می‌پذیرد. تا خالی است: هر آدرس **https** (آدرس http هرگز).
 - cron هر دقیقه: `php artisan schedule:run` (برای لغو خودکار سفارش‌های پرداخت‌نشده).
 - `Referrer-Policy: strict-origin-when-cross-origin` (همین حالا هست) تا حساب‌پی دامنه‌ی ما را ببیند.
