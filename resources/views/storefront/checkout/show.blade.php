@@ -14,6 +14,7 @@
 @php
     use App\Support\Money;
     use App\Support\Num;
+    use App\Support\Phone;
 
     $subtotal = $totals['subtotal'];
     // کد تخفیف (مرحله‌ی ۹-۳): مبلغ را سرور حساب کرده؛ فقط روی قیمت اجناس، نه کرایه
@@ -66,6 +67,13 @@
     $provinceId = (int) old('province_id', $defaults['province_id'] ?? 0);
     $payment = old('payment_method_code', $fits[$method][0] ?? '');
     $provinceNames = implode('، ', \App\Models\Province::deliverableNames());
+
+    // دفترچه‌ی آدرس: خانه‌ها از آخرین آدرس ذخیره‌شده پر می‌شود، مگر فورم با خطا برگشته باشد
+    // (آن وقت همان چیزی که مشتری نوشته بود می‌ماند)
+    $savedAddresses ??= collect();
+    $prefill = session()->hasOldInput() ? [] : ($defaults['address'] ?? []);
+    $ownPhone = (string) ($defaults['purchaser_phone'] ?? '');
+    $prefillGift = $prefill !== [] && $ownPhone !== '' && ($prefill['recipient_phone'] ?? '') !== $ownPhone;
 @endphp
 
 @section('content')
@@ -79,7 +87,9 @@
               x-data="{
                   method: @js($method),
                   province: @js((string) $provinceId),
-                  gift: @js((bool) old('is_gift', false)),
+                  gift: @js((bool) old('is_gift', $prefillGift)),
+                  picked: @js($prefill === [] ? 'new' : (string) $prefill['id']),
+                  ownPhone: @js($ownPhone),
                   day: @js(old('delivery_date', $defaults['delivery_date'])),
                   payment: @js($payment),
                   point: @js((string) old('collection_point_id', $points->first()->id ?? '')),
@@ -102,6 +112,19 @@
                   syncDay() {
                       const days = this.dayList;
                       if (! days.includes(this.day)) { this.day = days[0] ?? ''; }
+                  },
+                  // دفترچه‌ی آدرس: خانه‌های فورم را با آدرس انتخاب‌شده پر کن (null = خانه‌ها خالی)
+                  pickAddress(a) {
+                      const set = (id, v) => { const el = document.getElementById(id); if (el) { el.value = v ?? ''; } };
+                      ['city', 'district', 'address_line', 'delivery_instructions'].forEach((k) => set('f-' + k, a ? a[k] : ''));
+                      if (a) {
+                          if (this.dayLists['delivery|' + a.province_id]) { this.province = a.province_id; }
+                          this.gift = a.recipient_phone !== this.ownPhone;
+                          if (this.gift) { set('f-recipient_name', a.recipient_name); set('f-recipient_phone', a.recipient_phone); }
+                      }
+                      window.dispatchEvent(new CustomEvent('bz-address-picked', { detail: a
+                          ? { lat: a.delivery_lat, lng: a.delivery_lng, source: a.delivery_location_source }
+                          : { lat: '', lng: '', source: '' } }));
                   },
               }"
               x-init="$watch('method', () => { syncPayment(); syncDay(); }); $watch('province', () => syncDay())"
@@ -141,8 +164,10 @@
 
                         <div x-show="gift" x-cloak class="mt-4 grid gap-4 sm:grid-cols-2">
                             <x-storefront.field name="recipient_name" :label="__('checkout.gift.name')" required maxlength="100"
+                                                :value="$prefillGift ? $prefill['recipient_name'] : null"
                                                 :placeholder="__('checkout.gift.name_placeholder')" />
                             <x-storefront.field name="recipient_phone" :label="__('checkout.gift.phone')" required maxlength="20"
+                                                :value="$prefillGift ? $prefill['recipient_phone'] : null"
                                                 dir="ltr" inputmode="tel" :placeholder="__('checkout.purchaser.phone_placeholder')"
                                                 :help="__('checkout.gift.phone_help')" />
                         </div>
@@ -185,6 +210,35 @@
                     {{-- آدرس و روز تحویل (درِ خانه) --}}
                     <div x-show="method === 'delivery'" x-cloak class="mt-5 border-t border-gray-100 pt-5">
                         <h3 class="text-sm font-bold text-gray-900">{{ __('checkout.delivery.address_heading') }}</h3>
+
+                        {{-- دفترچه‌ی آدرس (مشتری عضو): با یک لمس همه‌ی خانه‌ها پر می‌شود --}}
+                        @if ($savedAddresses->isNotEmpty())
+                            <fieldset class="mt-3" id="saved-addresses">
+                                <legend class="form-help">{{ __('checkout.saved.help') }}</legend>
+                                <div class="mt-2 grid gap-2">
+                                    @foreach ($savedAddresses as $saved)
+                                        <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border p-3"
+                                               :class="picked === '{{ $saved->id }}' ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'">
+                                            <input type="radio" name="saved_address" value="{{ $saved->id }}" x-model="picked"
+                                                   x-on:change="pickAddress(@js($saved->toCheckoutFields()))" class="mt-1 size-5 text-brand-600">
+                                            <span class="min-w-0 text-sm">
+                                                <span class="block font-medium text-gray-900">
+                                                    {{ $saved->recipient_name }}
+                                                    <span class="font-normal text-gray-500" dir="ltr">{{ Phone::display($saved->recipient_phone) }}</span>
+                                                </span>
+                                                <span class="mt-0.5 block text-xs leading-6 text-gray-600">{{ $saved->summary() }}</span>
+                                            </span>
+                                        </label>
+                                    @endforeach
+                                    <label class="flex cursor-pointer items-center gap-2.5 rounded-xl border p-3"
+                                           :class="picked === 'new' ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'">
+                                        <input type="radio" name="saved_address" value="new" x-model="picked" x-on:change="pickAddress(null)" class="size-5 text-brand-600">
+                                        <span class="text-sm font-medium text-gray-900">{{ __('checkout.saved.new') }}</span>
+                                    </label>
+                                </div>
+                            </fieldset>
+                        @endif
+
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label for="f-province_id" class="form-label">
@@ -198,16 +252,28 @@
                                 <p class="form-help">{{ __('checkout.delivery.province_help', ['provinces' => $provinceNames]) }}</p>
                                 @error('province_id')<p class="form-error">{{ $message }}</p>@enderror
                             </div>
-                            <x-storefront.field name="city" :label="__('checkout.delivery.city')" maxlength="100"
+                            <x-storefront.field name="city" :label="__('checkout.delivery.city')" maxlength="100" :value="$prefill['city'] ?? null"
                                                 autocomplete="address-level2" :placeholder="__('checkout.delivery.city_placeholder')" />
-                            <x-storefront.field name="district" :label="__('checkout.delivery.district')" maxlength="100"
+                            <x-storefront.field name="district" :label="__('checkout.delivery.district')" maxlength="100" :value="$prefill['district'] ?? null"
                                                 :placeholder="__('checkout.delivery.district_placeholder')" />
                             <x-storefront.field name="address_line" type="textarea" rows="2" :label="__('checkout.delivery.address_line')"
-                                                required maxlength="500" autocomplete="street-address"
+                                                required maxlength="500" autocomplete="street-address" :value="$prefill['address_line'] ?? null"
                                                 :placeholder="__('checkout.delivery.address_placeholder')" class="sm:col-span-2" />
                             <x-storefront.field name="delivery_instructions" type="textarea" rows="2" :label="__('checkout.delivery.instructions')"
-                                                maxlength="500" :placeholder="__('checkout.delivery.instructions_placeholder')" class="sm:col-span-2" />
+                                                maxlength="500" :value="$prefill['delivery_instructions'] ?? null" :placeholder="__('checkout.delivery.instructions_placeholder')" class="sm:col-span-2" />
                         </div>
+
+                        @auth('customer')
+                            <input type="hidden" name="save_address" value="0">
+                            <label class="mt-4 flex items-start gap-2.5">
+                                <input type="checkbox" name="save_address" value="1" @checked(old('save_address', '1') === '1')
+                                       class="mt-1 size-5 rounded border-gray-300 text-brand-600">
+                                <span class="text-sm leading-6 text-gray-800">
+                                    {{ __('checkout.saved.remember') }}
+                                    <span class="block text-xs text-gray-500">{{ __('checkout.saved.remember_help') }}</span>
+                                </span>
+                            </label>
+                        @endauth
 
                         {{-- موقعیت روی نقشه (اختیاری): آدرس نوشتاری همیشه کافی است؛ نقشه فقط کار پیک را راحت می‌کند --}}
                         @if (config('store.maps.enabled'))
@@ -218,9 +284,9 @@
                                      'maxZoom' => config('store.maps.max_zoom'),
                                      'center' => config('store.maps.center'),
                                      'zoom' => config('store.maps.zoom'),
-                                     'lat' => (string) old('delivery_lat', ''),
-                                     'lng' => (string) old('delivery_lng', ''),
-                                     'source' => (string) old('delivery_location_source', ''),
+                                     'lat' => (string) old('delivery_lat', $prefill['delivery_lat'] ?? ''),
+                                     'lng' => (string) old('delivery_lng', $prefill['delivery_lng'] ?? ''),
+                                     'source' => (string) old('delivery_location_source', $prefill['delivery_location_source'] ?? ''),
                                      'text' => [
                                          'drag' => __('checkout.location.drag'),
                                          'mapFailed' => __('checkout.location.map_failed'),
@@ -228,7 +294,8 @@
                                          'gpsUnavailable' => __('checkout.location.gps_unavailable'),
                                          'gpsDone' => __('checkout.location.gps_done'),
                                      ],
-                                 ]))">
+                                 ]))"
+                                 x-on:bz-address-picked.window="setPoint($event.detail)">
                                 <input type="hidden" name="delivery_lat" x-model="lat" value="{{ old('delivery_lat') }}">
                                 <input type="hidden" name="delivery_lng" x-model="lng" value="{{ old('delivery_lng') }}">
                                 <input type="hidden" name="delivery_location_source" x-model="source" value="{{ old('delivery_location_source') }}">

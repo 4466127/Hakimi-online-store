@@ -7,9 +7,11 @@ namespace App\Services\Orders;
 use App\Models\Cart;
 use App\Models\CollectionPoint;
 use App\Models\Customer;
+use App\Models\CustomerAddress;
 use App\Models\PaymentMethod;
 use App\Models\Province;
 use App\Services\Cart\CartService;
+use App\Services\Customers\CustomerAddressBook;
 use App\Services\Delivery\DeliveryCalculator;
 use App\Services\Delivery\DeliveryOption;
 use App\Services\Payments\Gateways\PaymentGatewayManager;
@@ -34,6 +36,7 @@ class CheckoutPage
         private readonly CartService $carts,
         private readonly DeliveryCalculator $delivery,
         private readonly StoreInfo $store,
+        private readonly CustomerAddressBook $addresses,
     ) {}
 
     /**
@@ -64,6 +67,11 @@ class CheckoutPage
         // تحویل حضوری هم روز می‌خواهد (بی کرایه): تا جنس در نمایندگی آماده شود
         $pickupDays = $pickupEnabled ? $this->delivery->pickupOptions() : [];
 
+        // دفترچه‌ی آدرس مشتری عضو: فقط آدرس‌هایی که ولایت‌شان امروز تحویل دارد قابل انتخاب است
+        $saved = $customer === null ? collect() : $this->addresses->list($customer)
+            ->filter(fn ($address) => ($days[$address->province_id] ?? []) !== [])
+            ->values();
+
         return [
             'lines' => $lines,
             'totals' => $totals,
@@ -75,7 +83,8 @@ class CheckoutPage
             'pickupDays' => $pickupDays,
             'points' => $points,
             'methods' => $this->paymentMethods(),
-            'defaults' => $this->defaults($customer, $deliveryPossible, $pickupEnabled && $pickupDays !== [], $provinces, $days, $pickupDays),
+            'savedAddresses' => $saved,
+            'defaults' => $this->defaults($customer, $deliveryPossible, $pickupEnabled && $pickupDays !== [], $provinces, $days, $pickupDays, $saved->first()),
         ];
     }
 
@@ -105,15 +114,19 @@ class CheckoutPage
      *
      * @param  Collection<int, Province>  $provinces
      * @param  array<int, list<DeliveryOption>>  $days
+     * @param  list<DeliveryOption>  $pickupDays
      * @return array<string, mixed>
      */
-    private function defaults(?Customer $customer, bool $deliveryPossible, bool $pickupEnabled, Collection $provinces, array $days): array
+    private function defaults(?Customer $customer, bool $deliveryPossible, bool $pickupEnabled, Collection $provinces, array $days, array $pickupDays = [], ?CustomerAddress $lastAddress = null): array
     {
         $method = $deliveryPossible || ! $pickupEnabled
             ? DeliveryCalculator::METHOD_DELIVERY
             : DeliveryCalculator::METHOD_PICKUP;
 
-        $province = $provinces->first(fn (Province $p) => ($days[$p->id] ?? []) !== []) ?? $provinces->first();
+        // آدرسی که مشتری آخر استفاده کرد، خودش پیش‌فرض است
+        $province = ($lastAddress === null ? null : $provinces->firstWhere('id', $lastAddress->province_id))
+            ?? $provinces->first(fn (Province $p) => ($days[$p->id] ?? []) !== [])
+            ?? $provinces->first();
         $firstDay = $province === null ? null : ($days[$province->id][0] ?? null);
 
         return [
@@ -125,6 +138,8 @@ class CheckoutPage
             'delivery_date' => $method === DeliveryCalculator::METHOD_PICKUP
                 ? ($pickupDays[0] ?? null)?->dateString()
                 : $firstDay?->dateString(),
+            // خانه‌های آدرس از آخرین آدرس ذخیره‌شده (صفحه فقط وقتی استفاده می‌کند که فورم تازه باشد)
+            'address' => $lastAddress?->toCheckoutFields(),
         ];
     }
 }

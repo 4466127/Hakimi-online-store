@@ -10,6 +10,7 @@ use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -79,6 +80,12 @@ class Customer extends Authenticatable
     public function province(): BelongsTo
     {
         return $this->belongsTo(Province::class);
+    }
+
+    /** دفترچه‌ی آدرس (آخرین استفاده‌شده اول). */
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class)->orderByDesc('last_used_at')->orderByDesc('id');
     }
 
     public function activityLabel(): string

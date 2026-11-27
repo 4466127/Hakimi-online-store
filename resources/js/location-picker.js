@@ -106,6 +106,22 @@ export default (cfg) => ({
         this.open = false;
     },
 
+    // آدرس ذخیره‌شده انتخاب شد (دفترچه‌ی آدرس): موقعیت همان آدرس، یا خالی
+    setPoint(detail) {
+        const lat = detail && detail.lat ? String(detail.lat) : '';
+        const lng = detail && detail.lng ? String(detail.lng) : '';
+        this.lat = lat && lng ? lat : '';
+        this.lng = lat && lng ? lng : '';
+        this.source = lat && lng ? (detail.source || 'map') : '';
+        this.draft = null;
+        this.message = '';
+        if (this.chosen && this.map && this.marker) {
+            const point = [Number(this.lat), Number(this.lng)];
+            this.marker.setLatLng(point);
+            this.map.setView(point, 17);
+        }
+    },
+
     clear() {
         this.lat = '';
         this.lng = '';

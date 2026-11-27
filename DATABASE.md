@@ -91,8 +91,22 @@ Index: (`subject_type`, `subject_id`)، (`actor_type`, `actor_id`, `created_at`)
 | last_login_at | DATETIME NULL | |
 | timestamps, deleted_at | | |
 
-#### `customer_addresses`
-`id`، `customer_id` FK، `label` VARCHAR(50) (خانه/دفتر)، `recipient_name`، `recipient_phone`، `province_id` FK، `city`، `address_line` TEXT، `is_default` BOOL، timestamps.
+#### `customer_addresses` ✓ (`2026_11_27_000100`؛ ۶ قوس ۱۴۰۵) — دفترچه‌ی آدرس مشتری عضو
+| ستون | نوع | توضیح |
+|---|---|---|
+| id | | |
+| customer_id | FK customers (حذف مشتری ← حذف آدرس‌ها) | |
+| recipient_name, recipient_phone | VARCHAR(100), VARCHAR(20) | گیرنده؛ شماره نرمال‌شده `07XXXXXXXX` |
+| province_id | FK provinces NULL | |
+| city, district | VARCHAR(100) NULL | |
+| address_line | TEXT | |
+| delivery_instructions | TEXT NULL | نشانی برای پیک |
+| delivery_lat, delivery_lng | DECIMAL(10,7) NULL | موقعیت روی نقشه (اگر مشتری گذاشته بود) |
+| delivery_location_source | VARCHAR(10) NULL | `map` / `gps` |
+| last_used_at | DATETIME | آخرین سفارش با این آدرس؛ **«پیش‌فرض» = آخرین استفاده‌شده** (ستون `is_default` و `label` طرح اول ساخته نشد) |
+| timestamps | | |
+
+قاعده‌ها (`App\Services\Customers\CustomerAddressBook`): فقط بعد از سفارش «درِ خانه»ی مشتری **واردشده** و اگر تیک «نگه دار» را برنداشته؛ همان ولایت + همان متن آدرس (بی فاصله‌ی اضافه و ی/ک عربی) + همان شماره‌ی گیرنده ← ردیف تازه ساخته نمی‌شود، فقط به‌روز؛ موقعیت نقشه فقط اگر این بار گذاشته شده عوض می‌شود؛ حداکثر ۱۰ آدرس (آدرس یازدهم جای دیرتر استفاده‌شده را می‌گیرد)؛ مشتری در «حساب من ← آدرس‌های من» پاک می‌کند. Index (`customer_id`, `last_used_at`).
 
 #### `customer_otps` — کد یک‌بارمصرف (مرحله‌ی بعد؛ جدول در مرحله‌ی ۵ ساخته می‌شود)
 `id`، `phone`، `code_hash`، `purpose` VARCHAR(10) (`login`/`verify`/`reset`)، `expires_at`، `attempts` TINYINT، `created_at`. Index (`phone`, `purpose`).

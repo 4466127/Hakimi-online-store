@@ -71,6 +71,14 @@ class ViewOrder extends ViewRecord
                     $this->run(fn () => $this->workflow()->cancel($record, trim((string) $data['reason']), $this->actor()), 'rejected');
                 }),
 
+            // برگه‌ی بسته‌بندی (هر فروشنده یک برگه) در برگه‌ی تازه‌ی مرورگر برای چاپ
+            Action::make('packing_slip')
+                ->label(__('admin.packing.button'))
+                ->icon(Heroicon::OutlinedPrinter)
+                ->color('gray')
+                ->visible(fn (Order $record): bool => $record->status !== Order::STATUS_CANCELLED)
+                ->url(fn (Order $record): string => route('admin.packing-slip', ['order' => $record->uuid]), shouldOpenInNewTab: true),
+
             Action::make('note')
                 ->label(__('admin.orders.save_note'))
                 ->icon(Heroicon::OutlinedPencilSquare)

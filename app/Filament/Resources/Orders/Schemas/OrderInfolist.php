@@ -157,7 +157,8 @@ class OrderInfolist
                                     ->label(__('admin.orders.seller'))
                                     ->state(fn (OrderItem $record): string => $record->seller_id === null
                                         ? (string) __('admin.orders.own_products')
-                                        : ($record->seller?->store_name ?: $record->seller?->full_name ?? '—'))
+                                        // loadMissing: بارگذاری صریح (strict mode بارگذاری تنبل را روی لپتاپ خطا می‌داند)
+                                        : ($record->loadMissing('seller')->seller?->store_name ?: $record->seller?->full_name ?? '—'))
                                     ->columnSpan(2),
                             ]),
                     ]),
@@ -186,7 +187,7 @@ class OrderInfolist
                             ->formatStateUsing(fn ($state): string => Money::format($state)),
                         TextEntry::make('sellers')
                             ->label(__('admin.orders.sellers_count'))
-                            ->state(fn (Order $record): string => $record->sellerOrders
+                            ->state(fn (Order $record): string => $record->loadMissing('sellerOrders.seller')->sellerOrders
                                 ->map(fn (SellerOrder $so): string => ($so->seller?->store_name ?: $so->seller?->full_name ?? (string) __('admin.orders.own_products'))
                                     .' — '.Money::format($so->gross_subtotal).' ('.__('checkout.status.'.$so->status).')')
                                 ->implode(' • '))
@@ -223,7 +224,7 @@ class OrderInfolist
                             }),
                         TextEntry::make('assigned_courier')
                             ->label(__('admin.payments.assigned_courier'))
-                            ->state(fn (Order $record): string => $record->sellerOrders
+                            ->state(fn (Order $record): string => $record->loadMissing('sellerOrders.courier')->sellerOrders
                                 ->map(fn (SellerOrder $so) => $so->courier?->name)
                                 ->filter()->unique()->implode('، ') ?: '—'),
                         TextEntry::make('payments_receipt_link')

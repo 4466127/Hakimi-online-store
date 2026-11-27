@@ -15,6 +15,7 @@
         $menu = [
             ['href' => route('account.orders'), 'icon' => 'heroicon-o-shopping-bag', 'label' => __('customer.account.menu.orders')],
             ['href' => route('order.track'), 'icon' => 'heroicon-o-magnifying-glass', 'label' => __('checkout.track.title')],
+            ['href' => route('account.addresses'), 'icon' => 'heroicon-o-map-pin', 'label' => __('customer.addresses.title')],
             ['href' => '#profile', 'icon' => 'heroicon-o-user-circle', 'label' => __('customer.account.profile')],
             ['href' => '#password', 'icon' => 'heroicon-o-lock-closed', 'label' => __('customer.account.password')],
             ['href' => $seller ? route('seller.onboarding') : route('seller.landing'), 'icon' => 'heroicon-o-building-storefront', 'label' => __('customer.account.menu.seller')],
@@ -61,13 +62,6 @@
                                 </a>
                             </li>
                         @endforeach
-                        <li>
-                            <span class="flex min-h-14 items-center gap-3 px-4 text-gray-400" aria-disabled="true">
-                                @svg('heroicon-o-map-pin', 'size-6 shrink-0')
-                                <span class="flex-1">{{ __('customer.account.menu.addresses') }}</span>
-                                <span class="rounded-full bg-gray-100 px-2 text-xs">{{ __('customer.account.soon') }}</span>
-                            </span>
-                        </li>
                         <li>
                             <form method="post" action="{{ route('logout') }}">
                                 @csrf

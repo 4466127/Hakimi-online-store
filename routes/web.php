@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\PackingSlipController;
 use App\Http\Controllers\Admin\ReceiptController;
 use App\Http\Controllers\HesabPayWebhookController;
 use App\Http\Controllers\Storefront\AccountController;
+use App\Http\Controllers\Storefront\AddressController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CategoryController;
 use App\Http\Controllers\Storefront\CheckoutController;
@@ -42,6 +44,12 @@ Route::get('/admin/settlement-receipts/{settlement}', [ReceiptController::class,
     ->middleware('auth')
     ->whereUuid('settlement')
     ->name('admin.settlement-receipt');
+
+// برگه‌ی بسته‌بندی برای چاپ (۶ قوس ۱۴۰۵؛ اجازه مثل دیدن سفارش — OrderPolicy@view)
+Route::get('/admin/packing-slips/{order}', [PackingSlipController::class, 'show'])
+    ->middleware('auth')
+    ->whereUuid('order')
+    ->name('admin.packing-slip');
 
 Route::get('/page/{slug}', [PageController::class, 'show'])
     ->where('slug', '[^/]+')
@@ -104,6 +112,8 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/account/orders', [OrderController::class, 'mine'])->name('account.orders');
     Route::put('/account/profile', [AccountController::class, 'updateProfile'])->name('account.profile');
     Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
+    Route::get('/account/addresses', [AddressController::class, 'index'])->name('account.addresses');
+    Route::delete('/account/addresses/{address}', [AddressController::class, 'destroy'])->whereNumber('address')->name('account.addresses.destroy');
 
     // ثبت‌نام فروشنده (چهار قدم)
     Route::get('/sell/onboarding', [SellerOnboardingController::class, 'index'])->name('seller.onboarding');

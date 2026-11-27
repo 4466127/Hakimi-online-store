@@ -9,6 +9,7 @@ use App\Http\Requests\Storefront\CheckoutRequest;
 use App\Models\Customer;
 use App\Models\DiscountCode;
 use App\Services\Cart\CartService;
+use App\Services\Customers\CustomerAddressBook;
 use App\Services\Marketing\DiscountCodeException;
 use App\Services\Marketing\DiscountCodeService;
 use App\Services\Orders\CheckoutException;
@@ -136,6 +137,16 @@ class CheckoutController extends Controller
             return back()->withInput()->with('error', $e->userMessage());
         }
         $request->session()->forget(self::DISCOUNT_SESSION_KEY);
+
+        // دفترچه‌ی آدرس: آدرس این سفارش برای خرید بعدی (مشتری عضو، اگر تیک را برنداشته)
+        if ($request->user('customer') !== null && $order->customer_id !== null && $request->boolean('save_address', true)) {
+            try {
+                app(CustomerAddressBook::class)->rememberFromOrder($order);
+            } catch (\Throwable $e) {
+                // سفارش ثبت شده؛ نگه نداشتن آدرس نباید خرید را خراب کند
+                report($e);
+            }
+        }
 
         // سفارش‌های همین نشست (حداکثر ۱۰ تا) تا مهمان بتواند بعداً پیدایش کند
         $recent = array_values(array_unique(array_merge([$order->uuid], (array) $request->session()->get(self::RECENT_SESSION_KEY, []))));

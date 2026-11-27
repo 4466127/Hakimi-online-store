@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 /**
  * حساب کاربری مشتری: خلاصه، سه سفارش آخر، ویرایش نام و تغییر رمز.
- * آدرس‌های ذخیره‌شده بعد از MVP اضافه می‌شود.
+ * آدرس‌های ذخیره‌شده در `AddressController` (۶ قوس ۱۴۰۵).
  */
 class AccountController extends Controller
 {

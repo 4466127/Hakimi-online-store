@@ -85,6 +85,8 @@ class CheckoutRequest extends FormRequest
             'payment_method_code' => ['required', 'string', Rule::exists('payment_methods', 'code')->where('is_active', true)],
             'pickup_date' => ['nullable', 'date_format:Y-m-d'],
             'customer_note' => ['nullable', 'string', 'max:500'],
+            // «این آدرس را برای خرید بعدی نگه دار» (فقط مشتری عضو؛ نبودنش = بلی)
+            'save_address' => ['nullable', 'boolean'],
         ];
     }
 
